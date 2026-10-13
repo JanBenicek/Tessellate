@@ -166,7 +166,7 @@ public final class RegionalBlockEvents {
         for (EventQueue queue : queues()) {
             for (BlockEventData event : queue.snapshot()) {
                 if (area.isInside(event.pos())) {
-                    affectedChunks.add(ChunkPos.asLong(event.pos()));
+                    affectedChunks.add(ChunkPos.pack(event.pos()));
                 }
             }
         }
@@ -227,7 +227,7 @@ public final class RegionalBlockEvents {
         if (!this.regionalRouting) {
             return UNOWNED;
         }
-        Region region = this.index.regionForChunk(new ChunkPos(event.pos()));
+        Region region = this.index.regionForChunk(ChunkPos.containing(event.pos()));
         return region == null ? UNOWNED : region.id();
     }
 

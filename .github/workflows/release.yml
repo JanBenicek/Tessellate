@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
       - name: Verify release version
         shell: bash
@@ -29,11 +29,14 @@ jobs:
             exit 1
           }
       - name: Build and test
-        run: bash ./gradlew build runGameTestServer --no-daemon --stacktrace
+        run: |
+          bash ./gradlew build --no-daemon --stacktrace
+          bash ./gradlew :neoforge:runGameTestServer --no-daemon --stacktrace
+          bash ./gradlew :fabric:runFabricGameTest --no-daemon --stacktrace
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          mapfile -t artifacts < <(find fabric/build/libs neoforge/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-dev-shadow.jar' ! -name '*-sources.jar')
+          mapfile -t artifacts < <(find fabric/build/libs neoforge/build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-dev.jar' ! -name '*-dev-shadow.jar' ! -name '*-sources.jar')
           test "${#artifacts[@]}" -eq 2
           gh release create "$GITHUB_REF_NAME" "${artifacts[@]}" --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

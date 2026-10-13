@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ComparatorBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.PoweredRailBlock;
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
@@ -50,35 +50,35 @@ public final class RedstoneGameTestCases {
         chunk.getSection(chunk.getSectionIndex(target.getY())).setBlockState(
             target.getX() & 15, target.getY() & 15, target.getZ() & 15,
             Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.FACING, Direction.WEST));
-        chunk.setBlockState(target.below(), Blocks.STONE.defaultBlockState(), false);
-        level.getChunkAt(source).setBlockState(source, Blocks.REDSTONE_BLOCK.defaultBlockState(), false);
-        index.onChunkStatusChange(new ChunkPos(source).toLong(), true);
+        chunk.setBlockState(target.below(), Blocks.STONE.defaultBlockState(), 0);
+        level.getChunkAt(source).setBlockState(source, Blocks.REDSTONE_BLOCK.defaultBlockState(), 0);
+        index.onChunkStatusChange(ChunkPos.containing(source).pack(), true);
         index.tick();
         var ticks = (RegionalLevelTicks<Block>) level.getBlockTicks();
         ticks.reconcile(index);
-        helper.assertTrue(index.regionForChunk(new ChunkPos(source)) != null, "source has no owner");
-        helper.assertTrue(index.regionForChunk(new ChunkPos(target)) == null, "target must be unowned");
+        helper.assertTrue(index.regionForChunk(ChunkPos.containing(source)) != null, "source has no owner");
+        helper.assertTrue(index.regionForChunk(ChunkPos.containing(target)) == null, "target must be unowned");
         long misses = RegionTracker.unavailableChunks();
         worker(level, source, () -> {
             helper.assertTrue(!RedstoneUpdates.canRun(level, target), "FULL unowned chunk passed preflight");
-            level.neighborChanged(target, Blocks.REDSTONE_BLOCK, source);
-            level.neighborChanged(level.getBlockState(target), target, Blocks.REDSTONE_BLOCK, source, false);
+            level.neighborChanged(target, Blocks.REDSTONE_BLOCK, null);
+            level.neighborChanged(level.getBlockState(target), target, Blocks.REDSTONE_BLOCK, null, false);
             level.updateNeighborsAt(source, Blocks.REDSTONE_BLOCK);
-            level.updateNeighborsAtExceptFromFacing(source, Blocks.REDSTONE_BLOCK, Direction.WEST);
+            level.updateNeighborsAtExceptFromFacing(source, Blocks.REDSTONE_BLOCK, Direction.WEST, null);
         });
         RegionTracker.quiesceAndDrain();
         helper.assertTrue(ticks.hasScheduledTick(target, Blocks.REPEATER), "unowned repeater update was lost");
         tick(level, target);
         helper.assertTrue(level.getBlockState(target).getValue(RepeaterBlock.POWERED), "repeater did not power");
-        level.getChunkAt(source).setBlockState(source, Blocks.AIR.defaultBlockState(), false);
-        worker(level, source, () -> level.neighborChanged(target, Blocks.REDSTONE_BLOCK, source));
+        level.getChunkAt(source).setBlockState(source, Blocks.AIR.defaultBlockState(), 0);
+        worker(level, source, () -> level.neighborChanged(target, Blocks.REDSTONE_BLOCK, null));
         RegionTracker.quiesceAndDrain();
         tick(level, target);
         helper.assertTrue(!level.getBlockState(target).getValue(RepeaterBlock.POWERED), "repeater remained powered");
         checkPreflightRebinding(helper, level, source, ticks);
         helper.assertTrue(RegionTracker.unavailableChunks() == misses && RegionTracker.parallelAllowed(),
             "loaded unowned redstone caused fallback");
-        index.onChunkStatusChange(new ChunkPos(source).toLong(), false);
+        index.onChunkStatusChange(ChunkPos.containing(source).pack(), false);
         helper.succeed();
     }
 
@@ -91,7 +91,7 @@ public final class RedstoneGameTestCases {
             var binding = RegionThreadContext.currentBinding();
             RegionThreadContext.exit();
             // A new FULL container starts unowned even when the index already owns its cell.
-            ticks.addContainer(new ChunkPos(pos), chunkTicks);
+            ticks.addContainer(ChunkPos.containing(pos), chunkTicks);
             RegionThreadContext.enter(binding.region(), binding.levelKey());
             helper.assertTrue(!RedstoneUpdates.canRun(level, pos, 0), "preflight cache survived task rebinding");
         });
@@ -157,8 +157,8 @@ public final class RedstoneGameTestCases {
         BlockPos repeater = new BlockPos(((origin.getX() >> 4) + 1024) * 16 + 15,
             origin.getY() + 3, (origin.getZ() >> 4) * 16 + 8);
         var chunk = level.getChunkAt(repeater);
-        chunk.setBlockState(repeater.below(), Blocks.STONE.defaultBlockState(), false);
-        chunk.setBlockState(repeater.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), false);
+        chunk.setBlockState(repeater.below(), Blocks.STONE.defaultBlockState(), 0);
+        chunk.setBlockState(repeater.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 0);
         chunk.getSection(chunk.getSectionIndex(repeater.getY())).setBlockState(
             repeater.getX() & 15, repeater.getY() & 15, repeater.getZ() & 15,
             Blocks.REPEATER.defaultBlockState().setValue(RepeaterBlock.FACING, Direction.WEST));
@@ -166,23 +166,23 @@ public final class RedstoneGameTestCases {
         var section = chunk.getSection(chunk.getSectionIndex(railStart.getY()));
         for (int x = 0; x <= 9; x++) {
             BlockPos rail = railStart.east(x);
-            chunk.setBlockState(rail.below(), Blocks.STONE.defaultBlockState(), false);
+            chunk.setBlockState(rail.below(), Blocks.STONE.defaultBlockState(), 0);
             section.setBlockState(rail.getX() & 15, rail.getY() & 15, rail.getZ() & 15,
                 Blocks.POWERED_RAIL.defaultBlockState().setValue(PoweredRailBlock.SHAPE, RailShape.EAST_WEST));
         }
-        chunk.setBlockState(railStart.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), false);
+        chunk.setBlockState(railStart.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 0);
         BlockPos target = repeater.east();
         long misses = RegionTracker.unavailableChunks();
         RegionWorkers.runAllAndWait(List.of(() -> {
             helper.assertTrue(level.getChunkSource().getChunk(target.getX() >> 4,
                 target.getZ() >> 4, ChunkStatus.FULL, false) == null, "boundary chunk was already loaded");
-            level.neighborChanged(target, Blocks.REPEATER, repeater);
-            level.neighborChanged(Blocks.AIR.defaultBlockState(), target, Blocks.REPEATER, repeater, false);
+            level.neighborChanged(target, Blocks.REPEATER, null);
+            level.neighborChanged(Blocks.AIR.defaultBlockState(), target, Blocks.REPEATER, null, false);
             level.updateNeighborsAt(target, Blocks.REPEATER);
-            level.updateNeighborsAtExceptFromFacing(target, Blocks.REPEATER, Direction.WEST);
-            level.neighborShapeChanged(Direction.WEST, level.getBlockState(repeater), target, repeater, 3, 8);
+            level.updateNeighborsAtExceptFromFacing(target, Blocks.REPEATER, Direction.WEST, null);
+            level.neighborShapeChanged(Direction.WEST, target, repeater, level.getBlockState(repeater), 3, 8);
             tick(level, repeater);
-            level.neighborChanged(railStart, Blocks.REDSTONE_BLOCK, railStart.west());
+            level.neighborChanged(railStart, Blocks.REDSTONE_BLOCK, null);
         }, () -> { }));
         helper.assertTrue(!level.getBlockState(repeater).getValue(RepeaterBlock.POWERED),
             "boundary repeater tick did not defer");
@@ -235,13 +235,13 @@ public final class RedstoneGameTestCases {
 
     private static boolean fixtureOwned(ServerLevel level, BlockPos base) {
         var index = RegionTracker.index(level);
-        var center = new ChunkPos(base);
+        var center = ChunkPos.containing(base);
         var owner = index.regionForChunk(center);
         if (owner == null) return false;
         var ticks = (RegionalLevelTicks<?>) level.getBlockTicks();
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                if (!ticks.isOwnedBy(ChunkPos.asLong(center.x + x, center.z + z), owner)) return false;
+                if (!ticks.isOwnedBy(ChunkPos.pack(center.x() + x, center.z() + z), owner)) return false;
             }
         }
         return true;
@@ -250,13 +250,14 @@ public final class RedstoneGameTestCases {
     private static BlockPos fixture(ServerLevel level, BlockPos origin, int offset) {
         BlockPos base = new BlockPos(((origin.getX() >> 4) + offset) * 16 + 2,
             origin.getY() + 4, (origin.getZ() >> 4) * 16 + 2);
-        ChunkPos center = new ChunkPos(base);
+        ChunkPos center = ChunkPos.containing(base);
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                level.setChunkForced(center.x + x, center.z + z, true);
-                level.getChunk(center.x + x, center.z + z);
+                level.setChunkForced(center.x() + x, center.z() + z, true);
+                level.getChunk(center.x() + x, center.z() + z);
             }
         }
+        awaitFixtureChunks(level, center);
         for (int x = 0; x <= 12; x++) {
             for (int z = 0; z <= 10; z++) {
                 level.setBlock(base.offset(x, -1, z), Blocks.STONE.defaultBlockState(), 2);
@@ -314,7 +315,7 @@ public final class RedstoneGameTestCases {
 
     private static void assertCircuit(GameTestHelper helper, ServerLevel level, BlockPos base, boolean on) {
         for (int x = 1; x <= 7; x++) {
-            helper.assertTrue(level.getBlockState(base.east(x)).getValue(RedStoneWireBlock.POWER)
+            helper.assertTrue(level.getBlockState(base.east(x)).getValue(RedstoneWireBlock.POWER)
                 == (on ? 16 - x : 0), "dust attenuation/turn-off failed at " + base.east(x));
         }
         helper.assertTrue(level.getBlockState(base.east(8)).getValue(RepeaterBlock.POWERED) == on,
@@ -367,7 +368,7 @@ public final class RedstoneGameTestCases {
             await(ready);
             try {
                 for (int i = 0; i < 4000; i++) {
-                    level.neighborChanged(parallel.east(), Blocks.REDSTONE_BLOCK, parallel);
+                    level.neighborChanged(parallel.east(), Blocks.REDSTONE_BLOCK, null);
                 }
             } finally {
                 done.set(true);
@@ -390,7 +391,7 @@ public final class RedstoneGameTestCases {
 
     private static void inRegion(ServerLevel level, BlockPos pos, Runnable action) {
         LevelRegionIndex index = RegionTracker.index(level);
-        var region = index.regionForChunk(new ChunkPos(pos));
+        var region = index.regionForChunk(ChunkPos.containing(pos));
         if (region == null) throw new IllegalStateException("redstone fixture has no region owner");
         RegionThreadContext.enter(region, index.levelKey());
         try { action.run(); } finally { RegionThreadContext.exit(); }
@@ -416,10 +417,35 @@ public final class RedstoneGameTestCases {
         }
     }
 
-    private static void release(ServerLevel level, BlockPos base) {
-        ChunkPos center = new ChunkPos(base);
+    private static void awaitFixtureChunks(ServerLevel level, ChunkPos center) {
+        // GameTestServer runs without a tick delay. Await promotion rather than spending
+        // the test's tick budget while background chunk-generation tasks are still pending.
+        RegionTracker.quiesceAndDrain();
+        var source = level.getChunkSource();
+        var access = (org.texboobcat.tessellate.mixin.ChunkMapInvoker) source.chunkMap;
         for (int x = -1; x <= 1; x++) {
-            for (int z = -1; z <= 1; z++) level.setChunkForced(center.x + x, center.z + z, false);
+            for (int z = -1; z <= 1; z++) {
+                var holder = access.tessellate$getVisibleChunkIfPresent(
+                    ChunkPos.pack(center.x() + x, center.z() + z));
+                if (holder == null) {
+                    throw new IllegalStateException("forced fixture chunk has no holder");
+                }
+                var future = holder.getEntityTickingChunkFuture();
+                level.getServer().managedBlock(() -> {
+                    source.pollTask();
+                    return future.isDone();
+                });
+                if (future.join().orElse(null) == null) {
+                    throw new IllegalStateException("forced fixture chunk did not become entity-ticking");
+                }
+            }
+        }
+    }
+
+    private static void release(ServerLevel level, BlockPos base) {
+        ChunkPos center = ChunkPos.containing(base);
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) level.setChunkForced(center.x() + x, center.z() + z, false);
         }
     }
 }

@@ -1,6 +1,6 @@
 package org.texboobcat.tessellate.fabric;
 
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelExtractionEvents;
 import org.texboobcat.tessellate.client.RegionOverlay;
 
 public final class FabricRegionRenderEvents {
@@ -9,7 +9,7 @@ public final class FabricRegionRenderEvents {
     }
 
     public static void init() {
-        WorldRenderEvents.AFTER_TRANSLUCENT.register(context -> RegionOverlay.renderWorld(
-            context.matrixStack(), context.camera(), context.tickCounter()));
+        LevelExtractionEvents.END_EXTRACTION.register(context -> RegionOverlay.renderWorld(
+            context.camera(), context.deltaTracker()));
     }
 }

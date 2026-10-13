@@ -56,7 +56,7 @@ public final class TessellateCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("tessellate")
-            .requires(source -> source.hasPermission(2))
+            .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
             .then(Commands.literal("regions")
                 .executes(ctx -> regions(ctx.getSource(), false))
                 .then(Commands.literal("verbose")
@@ -358,7 +358,7 @@ public final class TessellateCommand {
             VISUALIZERS.add(player.getUUID());
         } else {
             VISUALIZERS.remove(player.getUUID());
-            player.displayClientMessage(Component.empty(), true);
+            player.sendSystemMessage(Component.empty(), true);
             if (NetworkManager.canPlayerReceive(player, RegionVisualizationPayload.TYPE)) {
                 NetworkManager.sendToPlayer(player, RegionVisualizationPayload.disabled());
             }
@@ -396,14 +396,14 @@ public final class TessellateCommand {
             NetworkManager.sendToPlayer(player, visualizationSnapshot(index, chunk, region));
         }
         if (region == null) {
-            player.displayClientMessage(Component.literal(String.format(
-                "Tessellate | chunk [%d, %d] | no active region (main thread)", chunk.x, chunk.z)),
+            player.sendSystemMessage(Component.literal(String.format(
+                "Tessellate | chunk [%d, %d] | no active region (main thread)", chunk.x(), chunk.z())),
                 true);
             return;
         }
 
         int shift = index.regionizer().sectionShift();
-        long cell = RegionSectionPos.fromChunk(chunk.x, chunk.z, shift);
+        long cell = RegionSectionPos.fromChunk(chunk.x(), chunk.z(), shift);
         int cellSize = 1 << (shift + 4);
         int cellX = RegionSectionPos.x(cell) * cellSize;
         int cellZ = RegionSectionPos.z(cell) * cellSize;
@@ -412,14 +412,14 @@ public final class TessellateCommand {
             DustParticleOptions regionParticle = region.lastWorkerIndex() < 0
                 ? IDLE_PARTICLE
                 : WORKER_PARTICLES[Math.floorMod(region.lastWorkerIndex(), WORKER_PARTICLES.length)];
-            drawSquare(player.serverLevel(), player, regionParticle, cellX, cellZ, cellSize,
+            drawSquare(player.level(), player, regionParticle, cellX, cellZ, cellSize,
                 Math.max(4, cellSize / 32), y);
-            drawSquare(player.serverLevel(), player, CHUNK_PARTICLE,
+            drawSquare(player.level(), player, CHUNK_PARTICLE,
                 chunk.getMinBlockX(), chunk.getMinBlockZ(), 16, 2, y);
         }
-        player.displayClientMessage(Component.literal(String.format(
+        player.sendSystemMessage(Component.literal(String.format(
             "Tessellate | region #%d | last worker T%d (pooled) | chunk [%d, %d] | rate 1/%d",
-            region.id(), region.lastWorkerIndex(), chunk.x, chunk.z, region.tickDivisor())), true);
+            region.id(), region.lastWorkerIndex(), chunk.x(), chunk.z(), region.tickDivisor())), true);
     }
 
     private static RegionVisualizationPayload visualizationSnapshot(LevelRegionIndex index,
@@ -436,7 +436,7 @@ public final class TessellateCommand {
                     worker, divisor, millis));
             }
         }
-        long playerCell = RegionSectionPos.fromChunk(playerChunk.x, playerChunk.z,
+        long playerCell = RegionSectionPos.fromChunk(playerChunk.x(), playerChunk.z(),
             index.regionizer().sectionShift());
         int playerCellX = RegionSectionPos.x(playerCell);
         int playerCellZ = RegionSectionPos.z(playerCell);
@@ -466,11 +466,11 @@ public final class TessellateCommand {
 
     private static void sendParticle(ServerLevel level, ServerPlayer player,
                                      DustParticleOptions particle, double x, double y, double z) {
-        level.sendParticles(player, particle, true, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+        level.sendParticles(player, particle, true, false, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
     }
 
     private static DustParticleOptions dust(float red, float green, float blue) {
-        return new DustParticleOptions(new Vector3f(red, green, blue), 1.0F);
+        return new DustParticleOptions(((int) (red * 255) << 16) | ((int) (green * 255) << 8) | (int) (blue * 255), 1.0F);
     }
 
 }

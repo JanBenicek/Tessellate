@@ -41,7 +41,7 @@ class RegionSectionPosTest {
 
     @Test
     void fromChunkLongMatchesFromChunkInts() {
-        // Same encoding Minecraft's ChunkPos.asLong uses: x in the low bits, z in the high bits.
+        // Same encoding Minecraft's ChunkPos.pack uses: x in the low bits, z in the high bits.
         long chunkPos = ((long) 13 << 32) | (-7 & 0xFFFFFFFFL);
         assertEquals(
             RegionSectionPos.fromChunk(-7, 13, 2),

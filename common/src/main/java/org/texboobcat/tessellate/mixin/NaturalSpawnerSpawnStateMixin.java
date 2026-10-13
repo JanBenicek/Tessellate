@@ -19,7 +19,7 @@ import org.texboobcat.tessellate.region.ParallelNaturalSpawner;
 public abstract class NaturalSpawnerSpawnStateMixin {
 
     @Inject(method = "canSpawn", at = @At("HEAD"), cancellable = true)
-    private void tessellate$checkParallelPotential(EntityType<?> type, BlockPos pos,
+    private void tessellate$checkParallelPotential(EntityType<?> type, net.minecraft.world.level.Level level, BlockPos pos,
                                                  ChunkAccess chunk,
                                                  CallbackInfoReturnable<Boolean> cir) {
         if (ParallelNaturalSpawner.active()) {
@@ -38,7 +38,7 @@ public abstract class NaturalSpawnerSpawnStateMixin {
         }
     }
 
-    @Inject(method = "canSpawnForCategory", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "canSpawnForCategoryLocal", at = @At("HEAD"), cancellable = true)
     private void tessellate$checkParallelCaps(MobCategory category, ChunkPos chunk,
                                            CallbackInfoReturnable<Boolean> cir) {
         if (ParallelNaturalSpawner.active()) {

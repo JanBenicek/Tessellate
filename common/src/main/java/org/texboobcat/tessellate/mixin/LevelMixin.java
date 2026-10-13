@@ -61,12 +61,12 @@ public abstract class LevelMixin implements LevelRegionIndex.RegionalLevelAccess
     @Shadow
     @org.spongepowered.asm.mixin.Final
     @org.spongepowered.asm.mixin.Mutable
-    protected net.minecraft.world.level.redstone.NeighborUpdater neighborUpdater;
+    protected net.minecraft.world.level.redstone.CollectingNeighborUpdater neighborUpdater;
 
     @Shadow
     @Final
     @Mutable
-    public RandomSource random;
+    protected RandomSource random;
 
     @Shadow
     protected int randValue;
@@ -119,13 +119,7 @@ public abstract class LevelMixin implements LevelRegionIndex.RegionalLevelAccess
             z + (bits >> 8 & 15)));
     }
 
-    // Vanilla's profiler is stack-based and cannot be shared by region workers.
-    @Inject(method = "getProfiler", at = @At("HEAD"), cancellable = true)
-    private void tessellate$workerProfiler(CallbackInfoReturnable<ProfilerFiller> cir) {
-        if (RegionWorkers.isWorkerThread()) {
-            cir.setReturnValue(InactiveProfiler.INSTANCE);
-        }
-    }
+    // Minecraft 26.3 uses a thread-local Profiler; workers no longer share its stack.
 
     // hasChunkAt checks tickets, which can precede FULL availability. Probe both comparator
     // reads without loading, including the unguarded read behind a conductor.
@@ -177,7 +171,7 @@ public abstract class LevelMixin implements LevelRegionIndex.RegionalLevelAccess
             if (Config.asyncRegionLoops) {
                 LevelRegionIndex index = RegionTracker.index(level);
                 if (index != null) {
-                    index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+                    index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                         pos.getX() >> 4, pos.getZ() >> 4));
                 }
             }
@@ -208,7 +202,7 @@ public abstract class LevelMixin implements LevelRegionIndex.RegionalLevelAccess
         }
         LevelRegionIndex index = RegionTracker.index(level);
         if (index != null) {
-            index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+            index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                 pos.getX() >> 4, pos.getZ() >> 4));
         }
     }
@@ -238,7 +232,7 @@ public abstract class LevelMixin implements LevelRegionIndex.RegionalLevelAccess
         if ((Object) this instanceof ServerLevel level) {
             LevelRegionIndex index = RegionTracker.index(level);
             if (index != null) {
-                index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+                index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                     pos.getX() >> 4, pos.getZ() >> 4));
             }
         }
@@ -337,11 +331,11 @@ public abstract class LevelMixin implements LevelRegionIndex.RegionalLevelAccess
         if (!Config.threadLocalRandom) {
             return;
         }
-        if (!(this.neighborUpdater instanceof net.minecraft.world.level.redstone.CollectingNeighborUpdater existing)) {
+        if (this.neighborUpdater.getClass() != net.minecraft.world.level.redstone.CollectingNeighborUpdater.class) {
             return;
         }
         int maxChained =
-            ((CollectingNeighborUpdaterAccessor) existing).tessellate$getMaxChainedNeighborUpdates();
+            ((CollectingNeighborUpdaterAccessor) this.neighborUpdater).tessellate$getMaxChainedNeighborUpdates();
         this.neighborUpdater = new org.texboobcat.tessellate.region.ThreadLocalNeighborUpdater(
             (net.minecraft.world.level.Level) (Object) this, maxChained);
     }

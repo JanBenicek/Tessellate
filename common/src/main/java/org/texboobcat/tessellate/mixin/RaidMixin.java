@@ -20,18 +20,14 @@ public abstract class RaidMixin {
     @Shadow
     private BlockPos center;
 
-    @Shadow
-    @Final
-    private ServerLevel level;
-
     @Inject(method = "tick", at = @At("HEAD"))
-    private void tessellate$leaseRaidRegion(CallbackInfo ci) {
+    private void tessellate$leaseRaidRegion(ServerLevel level, CallbackInfo ci) {
         if (!Config.asyncRegionLoops) {
             return;
         }
-        LevelRegionIndex index = RegionTracker.index(this.level);
+        LevelRegionIndex index = RegionTracker.index(level);
         if (index != null) {
-            index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+            index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                 this.center.getX() >> 4, this.center.getZ() >> 4));
         }
     }

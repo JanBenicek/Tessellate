@@ -24,7 +24,7 @@ public abstract class ClientboundLevelChunkPacketDataMixin {
         }
         LevelRegionIndex index = RegionTracker.index(level);
         if (index != null) {
-            index.leaseChunk(chunk.getPos().toLong());
+            index.leaseChunk(chunk.getPos().pack());
         }
     }
 }

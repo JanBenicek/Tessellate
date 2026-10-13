@@ -26,7 +26,7 @@ public final class ThreadLocalRandomSource implements RandomSource {
     }
 
     private final ThreadLocal<RandomSource> delegate =
-        ThreadLocal.withInitial(RandomSource::createNewThreadLocalInstance);
+        ThreadLocal.withInitial(RandomSource::create);
 
     private RandomSource get() {
         return this.delegate.get();

@@ -10,7 +10,7 @@ import dev.architectury.platform.Platform;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.texboobcat.tessellate.region.CompatibilityTicks;
@@ -124,7 +124,7 @@ public final class CompatibilityReporter {
     public static void report(String component, String eventKind, String reason,
                               @Nullable Throwable failure,
                               @Nullable String fallbackReasonCode) {
-        LOGGER.error("tessellate: {}", reason);
+        LOGGER.error("tessellate: {}", reason, failure);
         try {
             List<Mod> mods = Platform.getMods().stream()
                 .sorted(Comparator.comparing(Mod::getModId))
@@ -162,7 +162,7 @@ public final class CompatibilityReporter {
             .withStyle(ChatFormatting.RED)
             .append(Component.literal("[Copy compatibility report]")
                 .withStyle(style -> style.withColor(ChatFormatting.YELLOW).withUnderlined(true)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD,
+                    .withClickEvent(new ClickEvent.CopyToClipboard(
                         issueReport(report, reason)))));
         currentServer.execute(() -> currentServer.getPlayerList()
             .broadcastSystemMessage(message, false));
@@ -337,7 +337,7 @@ public final class CompatibilityReporter {
     }
 
     private static void addResourceLocation(TreeSet<String> ids, @Nullable String id) {
-        if (id != null && ResourceLocation.tryParse(id) != null) {
+        if (id != null && Identifier.tryParse(id) != null) {
             ids.add(id);
         }
     }

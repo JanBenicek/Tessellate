@@ -3,7 +3,7 @@ package org.texboobcat.tessellate.mixin;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ChunkResult;
@@ -12,7 +12,7 @@ import net.minecraft.server.level.GenerationChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.LocalMobCapCalculator;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.ChunkPos;
@@ -64,31 +64,29 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
 
     @Shadow
     @Final
-    public ServerLevel level;
+    private ServerLevel level;
 
     @Shadow
     @Final
     private DistanceManager distanceManager;
 
     @Shadow
-    private long lastInhabitedUpdate;
-
-    @Shadow
     private boolean spawnEnemies;
-
-    @Shadow
-    private boolean spawnFriendlies;
 
     @Shadow
     @Nullable
     private NaturalSpawner.SpawnState lastSpawnState;
+
+    @Shadow
+    @Final
+    private java.util.Set<ChunkHolder> chunkHoldersToBroadcast;
 
     @Unique
     private LevelRegionIndex.RegionalChunkWork tessellate$regionalChunkWork =
         new LevelRegionIndex.RegionalChunkWork(region -> { }, () -> { },
             region -> { }, () -> { });
 
-    @Inject(method = "tickChunks", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "tickChunks()V", at = @At("HEAD"), cancellable = true)
     private void tessellate$replaceWithRegionalChunkTick(CallbackInfo ci) {
         LevelRegionIndex index = RegionTracker.index(this.level);
         if (index == null || !index.usesFullRegionTick()) {
@@ -100,9 +98,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
 
     @Override
     public void tessellate$prepareRegionalChunks(LevelRegionIndex index) {
-        long gameTime = this.level.getGameTime();
-        long inhabitedDelta = gameTime - this.lastInhabitedUpdate;
-        this.lastInhabitedUpdate = gameTime;
+        long inhabitedDelta = 1L;
 
         boolean chunksRunNormally = !this.level.isDebug()
             && this.level.tickRateManager().runsNormally();
@@ -113,7 +109,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             tessellate$collectTickingChunks(index, regional, unowned, eligibleChunks,
                 chunksRunNormally);
         }
-        int randomTickSpeed = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
+        int randomTickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
         boolean periodicSpawnTick = this.level.getLevelData().getGameTime() % 400L == 0L;
 
         NaturalSpawner.SpawnState spawnState = null;
@@ -122,7 +118,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             List<Entity> entities = new ArrayList<>();
             this.level.getAllEntities().forEach(entities::add);
             int spawnableChunks = this.distanceManager.getNaturalSpawnChunkCount();
-            spawnState = NaturalSpawner.createState(spawnableChunks, entities,
+            spawnState = NaturalSpawner.createState(spawnableChunks, this.level,
                 this::tessellate$getFullChunk, new LocalMobCapCalculator(this.chunkMap));
             this.lastSpawnState = spawnState;
 
@@ -165,7 +161,15 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     private void tessellate$collectTickingChunks(LevelRegionIndex index,
             Map<Integer, List<LevelChunk>> regional, List<LevelChunk> unowned,
             LongSet eligibleChunks, boolean chunksRunNormally) {
-        for (ChunkHolder holder : ((ChunkMapInvoker) this.chunkMap).tessellate$getChunks()) {
+        // Vanilla now chooses spawn candidates independently of block-ticking tickets.
+        List<LevelChunk> spawning = new ArrayList<>();
+        if (chunksRunNormally) {
+            this.chunkMap.collectSpawningChunks(spawning);
+            for (LevelChunk chunk : spawning) {
+                eligibleChunks.add(chunk.getPos().pack());
+            }
+        }
+        for (ChunkHolder holder : ((ChunkMapInvoker) this.chunkMap).tessellate$getVisibleChunks().values()) {
             LevelChunk chunk = holder.getTickingChunk();
             if (chunk == null) {
                 continue;
@@ -176,25 +180,14 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             } else {
                 regional.computeIfAbsent(region.id(), ignored -> new ArrayList<>()).add(chunk);
             }
-            ChunkPos pos = chunk.getPos();
-            if (chunksRunNormally && tessellate$isSpawnEligible(pos)) {
-                eligibleChunks.add(pos.toLong());
-            }
         }
-    }
-
-    @Unique
-    private boolean tessellate$isSpawnEligible(ChunkPos pos) {
-        return this.level.isNaturalSpawningAllowed(pos)
-            && ((ChunkMapInvoker) this.chunkMap).tessellate$anyPlayerCloseEnoughForSpawning(pos)
-            || PlatformHooks.shouldForceTicks(this.level, this.distanceManager, pos.toLong());
     }
 
     @Unique
     private boolean tessellate$canRunParallelSpawning(int spawnableChunks) {
         return Config.parallelNaturalSpawning && ParallelNaturalSpawner.parallelAllowed()
-            && this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)
-            && spawnableChunks > 0 && (this.spawnEnemies || this.spawnFriendlies);
+            && this.level.getGameRules().get(GameRules.SPAWN_MOBS)
+            && spawnableChunks > 0;
     }
 
     @Unique
@@ -217,13 +210,13 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     private void tessellate$finishGlobalChunkWork(LevelRegionIndex index, List<LevelChunk> unowned,
                                                 boolean chunksRunNormally) {
         if (chunksRunNormally
-            && this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+            && this.level.getGameRules().get(GameRules.SPAWN_MOBS)) {
             MainThreadBoundaries.measure(MainThreadBoundaries.Boundary.CUSTOM_SPAWNERS,
                 MainThreadBoundaries.globalSource(index.levelKey()), () -> {
                     for (net.minecraft.server.level.ServerPlayer player : this.level.players()) {
-                        index.leaseChunk(player.chunkPosition().toLong());
+                        index.leaseChunk(player.chunkPosition().pack());
                     }
-                    this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);
+                    this.level.tickCustomSpawners(this.spawnEnemies);
                 });
         }
         tessellate$broadcast(unowned, MainThreadBoundaries.source(index.levelKey(), -1));
@@ -246,9 +239,9 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
         }
 
         List<LevelChunk> chunks = tessellate$filterTickChunks(source, run);
-        Util.shuffle(chunks, this.level.random);
+        Util.shuffle(chunks, this.level.getRandom());
 
-        boolean mobSpawning = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING);
+        boolean mobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
 
         for (LevelChunk chunk : chunks) {
             tessellate$tickChunk(chunk, spawnState, eligibleChunks, inhabitedDelta, randomTickSpeed,
@@ -264,7 +257,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
         }
         List<LevelChunk> chunks = new ArrayList<>(source.size());
         for (LevelChunk chunk : source) {
-            if (run.includes(Long.hashCode(chunk.getPos().toLong()))) {
+            if (run.includes(Long.hashCode(chunk.getPos().pack()))) {
                 chunks.add(chunk);
             }
         }
@@ -276,12 +269,16 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             LongSet eligibleChunks, long inhabitedDelta, int randomTickSpeed,
             boolean periodicSpawnTick, boolean spawnMobs, boolean mobSpawning) {
         ChunkPos pos = chunk.getPos();
-        if (!eligibleChunks.contains(pos.toLong())) {
-            return;
+        if (eligibleChunks.contains(pos.pack())) {
+            chunk.incrementInhabitedTime();
+            if (this.distanceManager.inEntityTickingRange(pos.pack())) {
+                this.level.tickThunder(chunk);
+            }
+            if (this.level.canSpawnEntitiesInChunk(pos)) {
+                tessellate$spawnMobs(chunk, pos, spawnState, periodicSpawnTick, spawnMobs, mobSpawning);
+            }
         }
-        chunk.incrementInhabitedTime(inhabitedDelta);
-        tessellate$spawnMobs(chunk, pos, spawnState, periodicSpawnTick, spawnMobs, mobSpawning);
-        if (this.level.shouldTickBlocksAt(pos.toLong())) {
+        if (this.distanceManager.inEntityTickingRange(pos.pack())) {
             PhaseStats.measure(PhaseStats.Phase.CHUNK_TICKS,
                 () -> this.level.tickChunk(chunk, randomTickSpeed));
         }
@@ -292,7 +289,6 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             NaturalSpawner.SpawnState spawnState, boolean periodicSpawnTick,
             boolean spawnMobs, boolean mobSpawning) {
         if (!spawnMobs || !mobSpawning || spawnState == null
-            || !(this.spawnEnemies || this.spawnFriendlies)
             || !this.level.getWorldBorder().isWithinBounds(pos)) {
             return;
         }
@@ -400,13 +396,13 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
         for (LevelChunk chunk : source) {
             ChunkPos pos = chunk.getPos();
             if ((region == null || region.memberInSlice(
-                    Long.hashCode(pos.toLong()), slice))
-                && eligibleChunks.contains(pos.toLong())
+                    Long.hashCode(pos.pack()), slice))
+                && eligibleChunks.contains(pos.pack())
                 && this.level.getWorldBorder().isWithinBounds(pos)) {
                 chunks.add(chunk);
             }
         }
-        Util.shuffle(chunks, this.level.random);
+        Util.shuffle(chunks, this.level.getRandom());
         return chunks;
     }
 
@@ -437,11 +433,11 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
         }
         tessellate$tickChunkList(unowned, null, spawnState, eligibleChunks, inhabitedDelta, true,
             randomTickSpeed, periodicSpawnTick, spawnMobs);
-        if (this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+        if (this.level.getGameRules().get(GameRules.SPAWN_MOBS)) {
             MainThreadBoundaries.measure(MainThreadBoundaries.Boundary.CUSTOM_SPAWNERS,
                 MainThreadBoundaries.globalSource(index.levelKey()),
                 () -> this.level.tickCustomSpawners(
-                    this.spawnEnemies, this.spawnFriendlies));
+                    this.spawnEnemies));
         }
         tessellate$broadcast(unowned, MainThreadBoundaries.source(index.levelKey(), -1));
         if (!RegionTracker.parallelAllowed()) {
@@ -454,9 +450,12 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     @Unique
     private void tessellate$spawnForChunk(LevelChunk chunk, NaturalSpawner.SpawnState spawnState,
                                        boolean periodicSpawnTick) {
+        if (!this.level.canSpawnEntitiesInChunk(chunk.getPos())) {
+            return;
+        }
         PhaseStats.measure(PhaseStats.Phase.NATURAL_SPAWNING,
             () -> NaturalSpawner.spawnForChunk(this.level, chunk, spawnState,
-                this.spawnFriendlies, this.spawnEnemies, periodicSpawnTick));
+                NaturalSpawner.getFilteredSpawningCategories(spawnState, this.spawnEnemies, periodicSpawnTick)));
     }
 
     @Unique
@@ -483,9 +482,10 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             MainThreadBoundaries.Boundary.CHUNK_PLAYER_BROADCASTS, source, () -> {
                 for (LevelChunk chunk : chunks) {
                     ChunkHolder holder = this.tessellate$getVisibleChunkIfPresent(
-                        chunk.getPos().toLong());
+                        chunk.getPos().pack());
                     if (holder != null) {
                         holder.broadcastChanges(chunk);
+                        this.chunkHoldersToBroadcast.remove(holder);
                     }
                 }
             }
@@ -535,7 +535,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     @Nullable
     public ChunkAccess tessellate$getChunkForWorker(int x, int z, ChunkStatus status,
                                                     boolean load) {
-        ChunkHolder holder = this.tessellate$getVisibleChunkIfPresent(ChunkPos.asLong(x, z));
+        ChunkHolder holder = this.tessellate$getVisibleChunkIfPresent(ChunkPos.pack(x, z));
         if (holder != null) {
             ChunkAccess chunk = holder.getChunkIfPresent(status);
             if (chunk != null) {

@@ -144,7 +144,7 @@ public final class LevelRegionIndex implements RegionizerListener {
 
     public LevelRegionIndex(ServerLevel level) {
         this.level = level;
-        this.levelKey = level.dimension().location().toString();
+        this.levelKey = level.dimension().identifier().toString();
         this.regionizer = new Regionizer(Config.sectionShift, Config.mergeRadius, this);
         this.blockEvents = new RegionalBlockEvents(level, this);
     }
@@ -239,7 +239,7 @@ public final class LevelRegionIndex implements RegionizerListener {
 
     // The state whose region owns this entity's chunk, or the orphan bucket.
     private RegionTickState stateForEntity(Entity entity) {
-        Region region = this.regionizer.regionForChunkLong(entity.chunkPosition().toLong());
+        Region region = this.regionizer.regionForChunkLong(entity.chunkPosition().pack());
         if (region == null) {
             return this.orphans;
         }
@@ -253,7 +253,7 @@ public final class LevelRegionIndex implements RegionizerListener {
             return this.orphans;
         }
         // The common case: it is where its position says it should be.
-        Region region = this.regionizer.regionForChunkLong(entity.chunkPosition().toLong());
+        Region region = this.regionizer.regionForChunkLong(entity.chunkPosition().pack());
         if (region != null) {
             RegionTickState state = this.states.get(region.id());
             if (state != null && state.containsEntity(entity)) {
@@ -1024,7 +1024,7 @@ public final class LevelRegionIndex implements RegionizerListener {
         if (owner != null && owner.isInFlight()) {
             return false;
         }
-        Region region = this.regionizer.regionForChunkLong(entity.chunkPosition().toLong());
+        Region region = this.regionizer.regionForChunkLong(entity.chunkPosition().pack());
         return region == null || regionIdle(region.id());
     }
 
@@ -1349,7 +1349,7 @@ public final class LevelRegionIndex implements RegionizerListener {
     // Which region owns a chunk, or null if the chunk is not entity-ticking.
     @Nullable
     public Region regionForChunk(ChunkPos pos) {
-        return this.regionizer.regionForChunkLong(pos.toLong());
+        return this.regionizer.regionForChunkLong(pos.pack());
     }
 
     // ---- RegionizerListener ----------------------------------------------------------------

@@ -3,7 +3,7 @@ package org.texboobcat.tessellate.neoforge;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
 import org.texboobcat.tessellate.Tessellate;
 import org.texboobcat.tessellate.client.RegionOverlay;
 
@@ -14,9 +14,7 @@ public final class NeoForgeRegionRenderEvents {
     }
 
     @SubscribeEvent
-    public static void renderWorld(RenderLevelStageEvent event) {
-        if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
-            RegionOverlay.renderWorld(event.getPoseStack(), event.getCamera(), event.getPartialTick());
-        }
+    public static void renderWorld(ExtractLevelRenderStateEvent event) {
+        RegionOverlay.renderWorld(event.getCamera(), event.getDeltaTracker());
     }
 }

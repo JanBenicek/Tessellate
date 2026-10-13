@@ -38,7 +38,7 @@ public final class Tessellate {
 
         LifecycleEvent.SERVER_LEVEL_LOAD.register(serverLevel -> {
             RegionTracker.onLevelLoad(serverLevel);
-            LOGGER.info("tessellate: tracking regions in {}", serverLevel.dimension().location());
+            LOGGER.info("tessellate: tracking regions in {}", serverLevel.dimension().identifier());
         });
         LifecycleEvent.SERVER_LEVEL_UNLOAD.register(RegionTracker::onLevelUnload);
 

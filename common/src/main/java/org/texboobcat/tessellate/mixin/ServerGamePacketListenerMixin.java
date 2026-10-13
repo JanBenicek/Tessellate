@@ -23,9 +23,9 @@ public abstract class ServerGamePacketListenerMixin {
         if (!Config.asyncRegionLoops) {
             return;
         }
-        LevelRegionIndex index = RegionTracker.index(this.player.serverLevel());
+        LevelRegionIndex index = RegionTracker.index(this.player.level());
         if (index != null) {
-            index.leaseChunk(this.player.chunkPosition().toLong());
+            index.leaseChunk(this.player.chunkPosition().pack());
         }
     }
 }

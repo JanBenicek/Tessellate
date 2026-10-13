@@ -102,11 +102,9 @@ public abstract class ServerLevelMixin {
         if (Config.regionsEnabled) {
             ServerLevel self = (ServerLevel) (Object) this;
             this.blockTicks = new RegionalLevelTicks<>(
-                this::isPositionTickingWithEntitiesLoaded,
-                self::getProfiler);
+                this::isPositionTickingWithEntitiesLoaded);
             this.fluidTicks = new RegionalLevelTicks<>(
-                this::isPositionTickingWithEntitiesLoaded,
-                self::getProfiler);
+                this::isPositionTickingWithEntitiesLoaded);
         }
     }
 
@@ -179,10 +177,10 @@ public abstract class ServerLevelMixin {
     // Piston and note-block callbacks call this positional overload. It performs NeoForge hooks
     // and walks the global player list, so keep that network side effect on main.
     @Inject(
-        method = "playSeededSound(Lnet/minecraft/world/entity/player/Player;DDDLnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
+        method = "playSeededSound(Lnet/minecraft/world/entity/Entity;DDDLnet/minecraft/core/Holder;Lnet/minecraft/sounds/SoundSource;FFJ)V",
         at = @At("HEAD"),
         cancellable = true)
-    private void tessellate$deferPositionalSound(Player except, double x, double y, double z,
+    private void tessellate$deferPositionalSound(Entity except, double x, double y, double z,
                                                Holder<SoundEvent> sound, SoundSource source,
                                                float volume, float pitch, long seed,
                                                CallbackInfo ci) {
@@ -204,7 +202,7 @@ public abstract class ServerLevelMixin {
         }
         LevelRegionIndex index = RegionTracker.index((ServerLevel) (Object) this);
         if (index != null) {
-            index.leaseChunk(chunk.getPos().toLong());
+            index.leaseChunk(chunk.getPos().pack());
         }
     }
 

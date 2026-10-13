@@ -9,8 +9,8 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(ChunkMap.class)
 public interface ChunkMapInvoker {
 
-    @Invoker("getChunks")
-    Iterable<ChunkHolder> tessellate$getChunks();
+    @org.spongepowered.asm.mixin.gen.Accessor("visibleChunkMap")
+    it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap<ChunkHolder> tessellate$getVisibleChunks();
 
     @Invoker("getVisibleChunkIfPresent")
     ChunkHolder tessellate$getVisibleChunkIfPresent(long chunkPos);

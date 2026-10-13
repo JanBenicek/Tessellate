@@ -1,6 +1,6 @@
 # Tessellate
 
-Tessellate is a Fabric and NeoForge performance mod for Minecraft 1.21.1. It groups distant loaded areas into
+Tessellate is a Fabric and NeoForge performance mod for Minecraft 26.3. It groups distant loaded areas into
 independent regions and lets those regions run on different CPU cores. If one region gets too
 expensive, Tessellate can slow it down without dragging the rest of the server with it.
 
@@ -8,7 +8,8 @@ Support and discussion: [join the Tessellate Discord](https://discord.gg/dPY6zmH
 
 ## Downloads
 
-Download Tessellate from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/tessellate).
+Download builds of this 26.3 branch from [GitHub Actions](https://github.com/JanBenicek/Tessellate/actions/workflows/ci.yml) → a successful run → **Artifacts**.
+Published versions are also available on [CurseForge](https://www.curseforge.com/minecraft/mc-mods/tessellate).
 
 | Situation | What Tessellate does |
 | --- | --- |
@@ -22,9 +23,10 @@ machine cluster is still one region, so Tessellate cannot split that work across
 doesn't replace single-thread optimizers such as [Lithium](https://modrinth.com/mod/lithium); the two
 solve different problems.
 
-## Current benchmark
+## Minecraft 1.21.1 benchmark
 
-For the current benchmark, we ran an ABBA sequence and restarted the server before every arm. The
+These results are from the original 1.21.1 version and have not been repeated on 26.3.
+For this benchmark, we ran an ABBA sequence and restarted the server before every arm. The
 test used four forced-loaded regions 2,048 blocks apart, each with exactly 1,200 persistent zombies
 (4,800 total). Both modes used adaptive throttling and the same nine-mod setup. The only setting we
 changed was `parallelTicking`.
@@ -404,10 +406,33 @@ Tessellate protects the shared state it knows about, but it cannot make unknown 
 
 ---
 
+## Minecraft 26.3 requirements
+
+The `mc-26.3` branch targets Minecraft **26.3**, Fabric Loader **0.19.5**,
+Fabric API **0.162.0+26.3**, NeoForge **26.3.0.76**, and Architectury API **22.0.5**.
+The toolchain uses **JDK 25**, **Gradle 9.6.0**, and Architectury Loom's
+unobfuscated (`loom-no-remap`) mode. Minecraft 1.21.1 mappings are no longer used.
+
+The benchmarks and compatibility results elsewhere in this
+README describe the original Minecraft 1.21.1 version, not the 26.3 port.
+
+## Automatic builds
+
+GitHub Actions runs CI on every push to any branch and on every pull request.
+It runs `build` (including unit tests and PMD), then NeoForge and Fabric GameTests.
+After a successful run, download `tessellate-26.3-<commit SHA>` from the run's
+**Artifacts** section. It contains the Fabric and NeoForge production JARs;
+install only the JAR matching your loader, together with the required dependencies.
+Artifacts are retained for 30 days. Failed runs upload diagnostic reports for 7 days.
+The CI workflow also supports **Run workflow** for manual builds once it is on the
+default branch. New forks may need Actions enabled in the repository's Actions tab.
+
+Tags matching `v<mod_version>` trigger the existing GitHub release workflow.
+
 ## Building
 
 ```
-./gradlew build          # requires JDK 21
+./gradlew build          # requires JDK 25
 ./gradlew runServer      # dev server with RCON on 25585
 python tools/bench_isolation.py --mobs 6000
 python tools/bench_parallel.py --areas 4 --mobs 1200

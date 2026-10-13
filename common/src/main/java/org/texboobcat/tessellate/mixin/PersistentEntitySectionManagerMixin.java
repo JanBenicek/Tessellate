@@ -107,7 +107,7 @@ public abstract class PersistentEntitySectionManagerMixin<T extends EntityAccess
                                           Visibility visibility, CallbackInfo ci) {
         RegionShardedEntityStorage<T> sharded = tessellate$sharded();
         if (sharded != null) {
-            sharded.leaseChunk(pos.toLong());
+            sharded.leaseChunk(pos.pack());
         }
     }
 

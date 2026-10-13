@@ -26,10 +26,6 @@ public final class PlatformHooksImpl {
         blockEntity.onLoad();
     }
 
-    public static boolean shouldForceTicks(ServerLevel level, DistanceManager distanceManager,
-                                           long chunkPos) {
-        return distanceManager.shouldForceTicks(chunkPos);
-    }
 
     public interface LevelAccess {
         void tessellate$drainFreshBlockEntities(Consumer<BlockEntity> action);
