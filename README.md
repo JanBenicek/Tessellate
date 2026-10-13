@@ -451,6 +451,16 @@ For the next live test, spread several players across distant loaded areas and c
 dimension changes, saving and a server restart. Capture both diagnostic commands and
 `logs/latest.log` to check region rates, failures, deferred queues and the block-entity count.
 
+
+### Hopper boundary regression
+
+A live Fabric 26.3 test with two players exposed a hopper requesting an unloaded neighboring
+chunk on a region worker, triggering serial fallback. Boundary hopper ticks now preflight loaded
+chunk ownership (including double-chest neighbors) and defer the whole tick to main when needed.
+Interior hoppers retain worker ticking. The unloaded-boundary GameTest checks that workers do not
+load the missing chunk, items remain intact, and a deferred transfer moves exactly one item.
+The live server scenario still needs retesting with the fixed build.
+
 ## Automatic builds
 
 GitHub Actions runs CI on every push to any branch and on every pull request.

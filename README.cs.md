@@ -340,6 +340,16 @@ Výpis regionů současně uváděl **50 osiřelých block entities**. Toto pozo
 
 Při dalším živém testu rozmístěte více hráčů do vzdálených načtených oblastí a ověřte, že `/tessellate regions` hlásí více regionů. Vyzkoušejte generování chunků, moby, redstone, změny dimenzí, ukládání a restart serveru. Uchovejte výstupy obou diagnostických příkazů a `logs/latest.log` pro kontrolu rychlosti regionů, chyb, odložených front a počtu block entities.
 
+
+### Regrese hopperu na hranici chunků
+
+Živý test Fabric 26.3 se dvěma hráči odhalil hopper požadující nenačtený sousední chunk na
+regionálním workeru, což vyvolalo sériový režim. Ticky hopperů nyní předem ověřují dostupnost a
+vlastnictví okolních chunků (včetně druhé poloviny dvojité truhly) a podle potřeby odloží celý tick
+na hlavní vlákno. Hoppery uvnitř regionu zůstávají na workerech. GameTest hranice s nenačteným
+chunkem kontroluje, že worker chunk nenačte, předměty zůstanou zachované a odložený přesun přenese
+přesně jeden předmět. Živý scénář je ještě nutné zopakovat s opraveným buildem.
+
 ## Automatické sestavení
 
 GitHub Actions spouští CI po každém pushi do libovolné větve a při každém pull requestu. Spustí `build` (včetně jednotkových testů a PMD), poté NeoForge a Fabric GameTests.
