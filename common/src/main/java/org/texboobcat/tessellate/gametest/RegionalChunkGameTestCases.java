@@ -528,15 +528,15 @@ public final class RegionalChunkGameTestCases {
 
     public static void mobAiTicksOnRegionWorkers(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
-        for (int x = 0; x < 9; x++) {
-            for (int z = 0; z < 9; z++) {
+        for (int x = 0; x < 17; x++) {
+            for (int z = 0; z < 17; z++) {
                 level.setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 0, z)),
                     Blocks.STONE.defaultBlockState());
             }
         }
 
-        Mob sheep = helper.spawn(net.minecraft.world.entity.EntityTypes.SHEEP, new BlockPos(2, 1, 2));
-        Mob attacker = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(2, 1, 3));
+        Mob sheep = helper.spawn(net.minecraft.world.entity.EntityTypes.SHEEP, new BlockPos(8, 1, 8));
+        Mob attacker = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(8, 1, 9));
         double sheepX = sheep.getX();
         double sheepZ = sheep.getZ();
         helper.assertTrue(sheep.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0F),
