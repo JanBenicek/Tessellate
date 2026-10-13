@@ -11,10 +11,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.FarmBlock;
+import net.minecraft.world.level.block.FarmlandBlock;
 import net.minecraft.world.level.block.entity.BellBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
@@ -338,10 +338,10 @@ public final class RegionalChunkGameTestCases {
             level.getChunkSource().move(players[i]);
         }
 
-        var randomTicks = level.getGameRules().getRule(GameRules.RULE_RANDOMTICKING);
-        var mobSpawning = level.getGameRules().getRule(GameRules.RULE_DOMOBSPAWNING);
-        int oldRandomTicks = randomTicks.get();
-        boolean oldMobSpawning = mobSpawning.get();
+        var randomTicks = GameRules.RANDOM_TICK_SPEED;
+        var mobSpawning = GameRules.SPAWN_MOBS;
+        int oldRandomTicks = level.getGameRules().get(randomTicks);
+        boolean oldMobSpawning = level.getGameRules().get(mobSpawning);
         long oldDayTime = level.getDayTime();
         PhaseStats.Snapshot spawningBefore = PhaseStats.snapshot(
             PhaseStats.Phase.NATURAL_SPAWNING);
@@ -349,12 +349,12 @@ public final class RegionalChunkGameTestCases {
         int[] topologyStage = {0};
         long[] topologyVersion = {-1L};
 
-        randomTicks.set(3000, level.getServer());
-        mobSpawning.set(true, level.getServer());
+        level.getGameRules().set(randomTicks, 3000, level.getServer());
+        level.getGameRules().set(mobSpawning, true, level.getServer());
         level.setDayTime(18000L);
         for (BlockPos position : cropPositions) {
             level.setBlockAndUpdate(position.below(), Blocks.FARMLAND.defaultBlockState()
-                .setValue(FarmBlock.MOISTURE, FarmBlock.MAX_MOISTURE));
+                .setValue(FarmlandBlock.MOISTURE, FarmlandBlock.MAX_MOISTURE));
             level.setBlockAndUpdate(position, Blocks.WHEAT.defaultBlockState());
             level.setBlockAndUpdate(position.east(), Blocks.GLOWSTONE.defaultBlockState());
         }
@@ -444,8 +444,8 @@ public final class RegionalChunkGameTestCases {
                     "serial rollback unexpectedly used reservations: " + reservations);
             }
 
-            randomTicks.set(oldRandomTicks, level.getServer());
-            mobSpawning.set(oldMobSpawning, level.getServer());
+            level.getGameRules().set(randomTicks, oldRandomTicks, level.getServer());
+            level.getGameRules().set(mobSpawning, oldMobSpawning, level.getServer());
             level.setDayTime(oldDayTime);
             for (ServerPlayer player : players) {
                 level.getServer().getPlayerList().remove(player);

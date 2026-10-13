@@ -1,7 +1,7 @@
 package org.texboobcat.tessellate.region;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.Vec3i;

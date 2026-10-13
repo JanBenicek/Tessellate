@@ -2,7 +2,7 @@ package org.texboobcat.tessellate.fabric;
 
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
@@ -101,7 +101,7 @@ public final class TessellateFabricConfig {
             ? list.stream()
                 .filter(String.class::isInstance)
                 .map(String.class::cast)
-                .filter(id -> ResourceLocation.tryParse(id) != null)
+                .filter(id -> Identifier.tryParse(id) != null)
                 .toList()
             : defaultValue;
         config.set(path, value);

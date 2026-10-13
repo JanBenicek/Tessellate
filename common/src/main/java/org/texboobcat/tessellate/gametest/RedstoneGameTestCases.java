@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ComparatorBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
+import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.PoweredRailBlock;
 import net.minecraft.world.level.block.piston.PistonMovingBlockEntity;
@@ -314,7 +314,7 @@ public final class RedstoneGameTestCases {
 
     private static void assertCircuit(GameTestHelper helper, ServerLevel level, BlockPos base, boolean on) {
         for (int x = 1; x <= 7; x++) {
-            helper.assertTrue(level.getBlockState(base.east(x)).getValue(RedStoneWireBlock.POWER)
+            helper.assertTrue(level.getBlockState(base.east(x)).getValue(RedstoneWireBlock.POWER)
                 == (on ? 16 - x : 0), "dust attenuation/turn-off failed at " + base.east(x));
         }
         helper.assertTrue(level.getBlockState(base.east(8)).getValue(RepeaterBlock.POWERED) == on,

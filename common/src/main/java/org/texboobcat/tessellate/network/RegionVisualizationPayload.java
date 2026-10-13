@@ -3,7 +3,7 @@ package org.texboobcat.tessellate.network;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.texboobcat.tessellate.Tessellate;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ public record RegionVisualizationPayload(boolean enabled, int sectionShift, int 
 
     public static final int MAX_CELLS = 1024;
     public static final Type<RegionVisualizationPayload> TYPE = new Type<>(
-        ResourceLocation.fromNamespaceAndPath(Tessellate.MODID, "region_visualization"));
+        Identifier.fromNamespaceAndPath(Tessellate.MODID, "region_visualization"));
     public static final StreamCodec<RegistryFriendlyByteBuf, RegionVisualizationPayload> STREAM_CODEC =
         StreamCodec.ofMember(RegionVisualizationPayload::write, RegionVisualizationPayload::read);
 

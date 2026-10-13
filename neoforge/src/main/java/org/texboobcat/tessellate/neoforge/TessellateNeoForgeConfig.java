@@ -220,7 +220,7 @@ public final class TessellateNeoForgeConfig {
         .defineListAllowEmpty("compatibility.mainThreadEntities",
             Config.DEFAULT_MAIN_THREAD_ENTITIES, () -> "minecraft:pig",
             value -> value instanceof String string
-                && net.minecraft.resources.ResourceLocation.tryParse(string) != null);
+                && net.minecraft.resources.Identifier.tryParse(string) != null);
 
     private static final ModConfigSpec.ConfigValue<java.util.List<? extends String>>
             FORCE_SERIAL_MODS = BUILDER

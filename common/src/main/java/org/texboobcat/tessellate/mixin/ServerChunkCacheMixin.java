@@ -3,7 +3,7 @@ package org.texboobcat.tessellate.mixin;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ChunkResult;
@@ -12,7 +12,7 @@ import net.minecraft.server.level.GenerationChunkHolder;
 import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.LocalMobCapCalculator;
 import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.ChunkPos;
@@ -113,7 +113,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             tessellate$collectTickingChunks(index, regional, unowned, eligibleChunks,
                 chunksRunNormally);
         }
-        int randomTickSpeed = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
+        int randomTickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
         boolean periodicSpawnTick = this.level.getLevelData().getGameTime() % 400L == 0L;
 
         NaturalSpawner.SpawnState spawnState = null;
@@ -193,7 +193,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     @Unique
     private boolean tessellate$canRunParallelSpawning(int spawnableChunks) {
         return Config.parallelNaturalSpawning && ParallelNaturalSpawner.parallelAllowed()
-            && this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)
+            && this.level.getGameRules().get(GameRules.SPAWN_MOBS)
             && spawnableChunks > 0 && (this.spawnEnemies || this.spawnFriendlies);
     }
 
@@ -217,7 +217,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     private void tessellate$finishGlobalChunkWork(LevelRegionIndex index, List<LevelChunk> unowned,
                                                 boolean chunksRunNormally) {
         if (chunksRunNormally
-            && this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+            && this.level.getGameRules().get(GameRules.SPAWN_MOBS)) {
             MainThreadBoundaries.measure(MainThreadBoundaries.Boundary.CUSTOM_SPAWNERS,
                 MainThreadBoundaries.globalSource(index.levelKey()), () -> {
                     for (net.minecraft.server.level.ServerPlayer player : this.level.players()) {
@@ -248,7 +248,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
         List<LevelChunk> chunks = tessellate$filterTickChunks(source, run);
         Util.shuffle(chunks, this.level.random);
 
-        boolean mobSpawning = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING);
+        boolean mobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
 
         for (LevelChunk chunk : chunks) {
             tessellate$tickChunk(chunk, spawnState, eligibleChunks, inhabitedDelta, randomTickSpeed,
@@ -437,7 +437,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
         }
         tessellate$tickChunkList(unowned, null, spawnState, eligibleChunks, inhabitedDelta, true,
             randomTickSpeed, periodicSpawnTick, spawnMobs);
-        if (this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {
+        if (this.level.getGameRules().get(GameRules.SPAWN_MOBS)) {
             MainThreadBoundaries.measure(MainThreadBoundaries.Boundary.CUSTOM_SPAWNERS,
                 MainThreadBoundaries.globalSource(index.levelKey()),
                 () -> this.level.tickCustomSpawners(

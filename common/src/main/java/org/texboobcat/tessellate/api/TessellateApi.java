@@ -2,7 +2,7 @@ package org.texboobcat.tessellate.api;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -30,11 +30,11 @@ public final class TessellateApi {
     private static volatile ConfiguredBlockEntities remoteBlockEntities =
         configuredBlockEntities(Set.of());
 
-    private record ConfiguredEntities(Set<ResourceLocation> ids,
+    private record ConfiguredEntities(Set<Identifier> ids,
                                       ConcurrentMap<EntityType<?>, Boolean> decisions) {
     }
 
-    private record ConfiguredBlockEntities(Set<ResourceLocation> ids,
+    private record ConfiguredBlockEntities(Set<Identifier> ids,
                                            ConcurrentMap<BlockEntityType<?>, Boolean> decisions) {
     }
 
@@ -82,9 +82,9 @@ public final class TessellateApi {
 
     static void configureRemoteMainThreadBlockEntities(Collection<String> blockEntityIds) {
         Objects.requireNonNull(blockEntityIds, "blockEntityIds");
-        Set<ResourceLocation> ids = blockEntityIds.stream()
+        Set<Identifier> ids = blockEntityIds.stream()
             .filter(Objects::nonNull)
-            .map(ResourceLocation::tryParse)
+            .map(Identifier::tryParse)
             .filter(Objects::nonNull)
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
         remoteBlockEntities = configuredBlockEntities(ids);
@@ -92,9 +92,9 @@ public final class TessellateApi {
 
     private static ConfiguredEntities parseConfiguredEntities(Collection<String> entityIds) {
         Objects.requireNonNull(entityIds, "entityIds");
-        Set<ResourceLocation> ids = entityIds.stream()
+        Set<Identifier> ids = entityIds.stream()
             .filter(Objects::nonNull)
-            .map(ResourceLocation::tryParse)
+            .map(Identifier::tryParse)
             .filter(Objects::nonNull)
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
         return configuredEntities(ids);
@@ -157,11 +157,11 @@ public final class TessellateApi {
         }
     }
 
-    private static ConfiguredEntities configuredEntities(Set<ResourceLocation> ids) {
+    private static ConfiguredEntities configuredEntities(Set<Identifier> ids) {
         return new ConfiguredEntities(ids, new ConcurrentHashMap<>());
     }
 
-    private static ConfiguredBlockEntities configuredBlockEntities(Set<ResourceLocation> ids) {
+    private static ConfiguredBlockEntities configuredBlockEntities(Set<Identifier> ids) {
         return new ConfiguredBlockEntities(ids, new ConcurrentHashMap<>());
     }
 
