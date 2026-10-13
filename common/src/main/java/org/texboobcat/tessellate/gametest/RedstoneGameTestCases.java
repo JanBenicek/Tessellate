@@ -179,10 +179,13 @@ public final class RedstoneGameTestCases {
         BlockPos hopperPos = repeater.south(2);
         BlockState hopperState = Blocks.HOPPER.defaultBlockState()
             .setValue(HopperBlock.FACING, Direction.EAST);
-        chunk.setBlockState(hopperPos, hopperState, 0);
-        HopperBlockEntity hopper = (HopperBlockEntity) level.getBlockEntity(hopperPos);
-        helper.assertTrue(hopper != null, "boundary hopper was not created");
+        // Place without HopperBlock.onPlace: its shape/output notifications would load
+        // the missing neighbor during fixture setup, before the worker is exercised.
+        chunk.getSection(chunk.getSectionIndex(hopperPos.getY())).setBlockState(
+            hopperPos.getX() & 15, hopperPos.getY() & 15, hopperPos.getZ() & 15, hopperState);
+        HopperBlockEntity hopper = new HopperBlockEntity(hopperPos, hopperState);
         hopper.setItem(0, new ItemStack(Items.STONE, 3));
+        chunk.setBlockEntity(hopper);
         long misses = RegionTracker.unavailableChunks();
         RegionWorkers.runAllAndWait(List.of(() -> {
             helper.assertTrue(level.getChunkSource().getChunk(target.getX() >> 4,
