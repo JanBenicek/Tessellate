@@ -1,6 +1,6 @@
 # Tessellate
 
-Tessellate is a Fabric and NeoForge performance mod for Minecraft 1.21.1. It groups distant loaded areas into
+Tessellate is a Fabric and NeoForge performance mod being ported to Minecraft 26.3. It groups distant loaded areas into
 independent regions and lets those regions run on different CPU cores. If one region gets too
 expensive, Tessellate can slow it down without dragging the rest of the server with it.
 
@@ -404,10 +404,38 @@ Tessellate protects the shared state it knows about, but it cannot make unknown 
 
 ---
 
+## Minecraft 26.3 port status
+
+The `mc-26.3` branch targets Minecraft **26.3**, Fabric Loader **0.19.5**,
+Fabric API **0.162.0+26.3**, NeoForge **26.3.0.76**, and Architectury API **22.0.5**.
+The toolchain uses **JDK 25**, **Gradle 9.6.0**, and Architectury Loom's
+unobfuscated (`loom-no-remap`) mode. Minecraft 1.21.1 mappings are no longer used.
+
+**Migration and validation are in progress; this branch is not yet a verified
+playable release.** Local Gradle configuration is currently blocked by the build
+sandbox denying Loom's Unix-domain-socket capability probe
+(`CurrentPlatform.isUnixDomainSocketsSupported`: `SocketException: Operation not permitted`).
+Compilation, mixin compatibility, and GameTests must pass on a normal runner before release.
+The benchmarks and compatibility results elsewhere in this
+README describe the original Minecraft 1.21.1 version, not the 26.3 port.
+
+## Automatic builds
+
+GitHub Actions runs CI on every push to any branch and on every pull request.
+It runs `build` (including unit tests and PMD) and the NeoForge GameTests.
+After a successful run, download `tessellate-26.3-<commit SHA>` from the run's
+**Artifacts** section. It contains the Fabric and NeoForge production JARs;
+install only the JAR matching your loader, together with the required dependencies.
+Artifacts are retained for 30 days. Failed runs upload diagnostic reports for 7 days.
+The CI workflow also supports **Run workflow** for manual builds once it is on the
+default branch. New forks may need Actions enabled in the repository's Actions tab.
+
+Tags matching `v<mod_version>` trigger the existing GitHub release workflow.
+
 ## Building
 
 ```
-./gradlew build          # requires JDK 21
+./gradlew build          # requires JDK 25
 ./gradlew runServer      # dev server with RCON on 25585
 python tools/bench_isolation.py --mobs 6000
 python tools/bench_parallel.py --areas 4 --mobs 1200
