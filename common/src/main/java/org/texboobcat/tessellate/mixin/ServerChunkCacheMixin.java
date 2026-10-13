@@ -70,15 +70,16 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     @Final
     private DistanceManager distanceManager;
 
-    @Unique
-    private long tessellate$lastInhabitedUpdate;
-
     @Shadow
     private boolean spawnEnemies;
 
     @Shadow
     @Nullable
     private NaturalSpawner.SpawnState lastSpawnState;
+
+    @Shadow
+    @Final
+    private java.util.Set<ChunkHolder> chunkHoldersToBroadcast;
 
     @Unique
     private LevelRegionIndex.RegionalChunkWork tessellate$regionalChunkWork =
@@ -97,9 +98,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
 
     @Override
     public void tessellate$prepareRegionalChunks(LevelRegionIndex index) {
-        long gameTime = this.level.getGameTime();
-        long inhabitedDelta = gameTime - this.tessellate$lastInhabitedUpdate;
-        this.tessellate$lastInhabitedUpdate = gameTime;
+        long inhabitedDelta = 1L;
 
         boolean chunksRunNormally = !this.level.isDebug()
             && this.level.tickRateManager().runsNormally();
@@ -162,7 +161,15 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     private void tessellate$collectTickingChunks(LevelRegionIndex index,
             Map<Integer, List<LevelChunk>> regional, List<LevelChunk> unowned,
             LongSet eligibleChunks, boolean chunksRunNormally) {
-        for (ChunkHolder holder : ((ChunkMapInvoker) this.chunkMap).tessellate$getChunks()) {
+        // Vanilla now chooses spawn candidates independently of block-ticking tickets.
+        List<LevelChunk> spawning = new ArrayList<>();
+        if (chunksRunNormally) {
+            this.chunkMap.collectSpawningChunks(spawning);
+            for (LevelChunk chunk : spawning) {
+                eligibleChunks.add(chunk.getPos().pack());
+            }
+        }
+        for (ChunkHolder holder : ((ChunkMapInvoker) this.chunkMap).tessellate$getVisibleChunks().values()) {
             LevelChunk chunk = holder.getTickingChunk();
             if (chunk == null) {
                 continue;
@@ -173,18 +180,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             } else {
                 regional.computeIfAbsent(region.id(), ignored -> new ArrayList<>()).add(chunk);
             }
-            ChunkPos pos = chunk.getPos();
-            if (chunksRunNormally && tessellate$isSpawnEligible(pos)) {
-                eligibleChunks.add(pos.pack());
-            }
         }
-    }
-
-    @Unique
-    private boolean tessellate$isSpawnEligible(ChunkPos pos) {
-        return this.level.canSpawnEntitiesInChunk(pos)
-            && ((ChunkMapInvoker) this.chunkMap).tessellate$anyPlayerCloseEnoughForSpawning(pos)
-            || PlatformHooks.shouldForceTicks(this.level, this.distanceManager, pos.pack());
     }
 
     @Unique
@@ -273,12 +269,16 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
             LongSet eligibleChunks, long inhabitedDelta, int randomTickSpeed,
             boolean periodicSpawnTick, boolean spawnMobs, boolean mobSpawning) {
         ChunkPos pos = chunk.getPos();
-        if (!eligibleChunks.contains(pos.pack())) {
-            return;
+        if (eligibleChunks.contains(pos.pack())) {
+            chunk.incrementInhabitedTime();
+            if (this.distanceManager.inEntityTickingRange(pos.pack())) {
+                this.level.tickThunder(chunk);
+            }
+            if (this.level.canSpawnEntitiesInChunk(pos)) {
+                tessellate$spawnMobs(chunk, pos, spawnState, periodicSpawnTick, spawnMobs, mobSpawning);
+            }
         }
-        chunk.setInhabitedTime(chunk.getInhabitedTime() + inhabitedDelta);
-        tessellate$spawnMobs(chunk, pos, spawnState, periodicSpawnTick, spawnMobs, mobSpawning);
-        if (this.level.shouldTickBlocksAt(pos.pack())) {
+        if (this.distanceManager.inEntityTickingRange(pos.pack())) {
             PhaseStats.measure(PhaseStats.Phase.CHUNK_TICKS,
                 () -> this.level.tickChunk(chunk, randomTickSpeed));
         }
@@ -482,6 +482,7 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
                         chunk.getPos().pack());
                     if (holder != null) {
                         holder.broadcastChanges(chunk);
+                        this.chunkHoldersToBroadcast.remove(holder);
                     }
                 }
             }

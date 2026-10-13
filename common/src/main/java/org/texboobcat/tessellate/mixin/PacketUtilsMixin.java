@@ -4,7 +4,7 @@ import net.minecraft.network.PacketListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketUtils;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
-import net.minecraft.util.thread.BlockableEventLoop;
+import net.minecraft.network.PacketProcessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -20,10 +20,10 @@ public abstract class PacketUtilsMixin {
     @Inject(
         method = "ensureRunningOnSameThread(Lnet/minecraft/network/protocol/Packet;"
             + "Lnet/minecraft/network/PacketListener;"
-            + "Lnet/minecraft/util/thread/BlockableEventLoop;)V",
+            + "Lnet/minecraft/network/PacketProcessor;)V",
         at = @At("RETURN"))
     private static void tessellate$leasePlayerPacket(Packet<?> packet, PacketListener listener,
-                                                   BlockableEventLoop<?> loop, CallbackInfo ci) {
+                                                   PacketProcessor processor, CallbackInfo ci) {
         if (!Config.asyncRegionLoops
             || !(listener instanceof ServerGamePacketListenerImpl game)) {
             return;

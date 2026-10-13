@@ -30,9 +30,4 @@ public final class PlatformHooks {
         throw new AssertionError();
     }
 
-    @ExpectPlatform
-    public static boolean shouldForceTicks(ServerLevel level, DistanceManager distanceManager,
-                                           long chunkPos) {
-        throw new AssertionError();
-    }
 }
