@@ -393,7 +393,10 @@ public final class RegionalChunkGameTestCases {
                     new AABB(activeCrop).inflate(128.0, 64.0, 128.0));
                 helper.assertTrue(!monsters.isEmpty(),
                     "regional natural spawning produced no hostile mob in region "
-                        + currentLocation);
+                        + currentLocation + "; difficulty=" + level.getDifficulty()
+                        + ", time=" + level.getOverworldClockTime()
+                        + ", spawning=" + PhaseStats.snapshot(PhaseStats.Phase.NATURAL_SPAWNING)
+                        + ", reservations=" + ParallelNaturalSpawner.stats());
                 helper.assertTrue(monsters.size() <= 70,
                     "regional hostile mob cap exceeded vanilla's one-player limit in region "
                         + currentLocation + ": " + monsters.size());

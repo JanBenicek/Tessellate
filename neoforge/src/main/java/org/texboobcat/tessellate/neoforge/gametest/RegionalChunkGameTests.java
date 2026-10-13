@@ -47,101 +47,114 @@ public final class RegionalChunkGameTests {
     }
 
     private static void registerTests(RegisterGameTestsEvent event) {
+        var environments = new java.util.HashMap<String,
+            net.minecraft.core.Holder<net.minecraft.gametest.framework.TestEnvironmentDefinition<?>>>();
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "loadedunownedredstoneupdates");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("redstone-ownership",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 400, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 400, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "torchburnoutstayslocal");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("redstone-torches",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 400, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 400, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "unloadedredstoneupdates");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("redstone-boundary",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 200, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 200, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "redstonecircuitsandconcurrentsignals");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("redstone-circuits",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 400, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 400, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "mainthreadboundaryhandoffs");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 100, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 100, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "compatibilityapirunsonliveowners");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 200, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 200, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "regionalchunkticksandnaturalspawning");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 4800, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 4800, 20, true,
                 Rotation.NONE, false, 1, 1, true, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "pathfindingisconcurrentonregionworkers");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 200, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 200, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "mobaiticksonregionworkers");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 120, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 120, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "scheduledtickrouterpreservesvanillacontainersemantics");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 100, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 100, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }
         {
             Identifier id = Identifier.fromNamespaceAndPath("tessellate", "blockeventrouterpreservesorderdedupandmainthreadpackets");
-            var environment = event.registerEnvironment(id);
+            var environment = environments.computeIfAbsent("default",
+                name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
-                Identifier.withDefaultNamespace("bastion/blocks/air"), 100, 0, true,
+                Identifier.withDefaultNamespace("bastion/blocks/air"), 100, 20, true,
                 Rotation.NONE, false, 1, 1, false, 1);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));

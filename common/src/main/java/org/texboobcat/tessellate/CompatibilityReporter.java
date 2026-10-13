@@ -124,7 +124,7 @@ public final class CompatibilityReporter {
     public static void report(String component, String eventKind, String reason,
                               @Nullable Throwable failure,
                               @Nullable String fallbackReasonCode) {
-        LOGGER.error("tessellate: {}", reason);
+        LOGGER.error("tessellate: {}", reason, failure);
         try {
             List<Mod> mods = Platform.getMods().stream()
                 .sorted(Comparator.comparing(Mod::getModId))
