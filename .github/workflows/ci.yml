@@ -24,6 +24,8 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Build and test
         run: bash ./gradlew build runGameTestServer --no-daemon --stacktrace
       - name: Upload mod JARs
