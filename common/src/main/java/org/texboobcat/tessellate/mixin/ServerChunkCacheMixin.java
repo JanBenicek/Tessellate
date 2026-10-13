@@ -450,6 +450,9 @@ public abstract class ServerChunkCacheMixin implements LevelRegionIndex.Regional
     @Unique
     private void tessellate$spawnForChunk(LevelChunk chunk, NaturalSpawner.SpawnState spawnState,
                                        boolean periodicSpawnTick) {
+        if (!this.level.canSpawnEntitiesInChunk(chunk.getPos())) {
+            return;
+        }
         PhaseStats.measure(PhaseStats.Phase.NATURAL_SPAWNING,
             () -> NaturalSpawner.spawnForChunk(this.level, chunk, spawnState,
                 NaturalSpawner.getFilteredSpawningCategories(spawnState, this.spawnEnemies, periodicSpawnTick)));

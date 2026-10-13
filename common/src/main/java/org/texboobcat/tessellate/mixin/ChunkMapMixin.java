@@ -48,7 +48,7 @@ public abstract class ChunkMapMixin {
     // Autosave is opportunistic. If the candidate's region is still finishing an asynchronous
     // tick, retry it later instead of turning autosave into a main-thread wait.
     @Inject(method = "saveChunkIfNeeded", at = @At("HEAD"), cancellable = true)
-    private void tessellate$deferBusyAutosave(ChunkHolder holder,
+    private void tessellate$deferBusyAutosave(ChunkHolder holder, long now,
                                             CallbackInfoReturnable<Boolean> cir) {
         if (!Config.asyncRegionLoops || RegionWorkers.isWorkerThread()
             || !RegionWorkers.anyTaskInFlight()) {

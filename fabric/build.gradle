@@ -83,6 +83,10 @@ def generateModMetadata = tasks.register('generateModMetadata', ProcessResources
 sourceSets.main.resources.srcDir generateModMetadata
 
 shadowJar {
+    // Preserve Loom's nested NightConfig jars and generated fabric.mod.json entries.
+    dependsOn jar
+    mainSpec.sourcePaths.clear()
+    from { zipTree(tasks.jar.archiveFile.get().asFile) }
     configurations = [project.configurations.shadowBundle]
     archiveClassifier = null
 }

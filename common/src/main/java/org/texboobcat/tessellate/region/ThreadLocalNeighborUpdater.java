@@ -6,13 +6,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.redstone.CollectingNeighborUpdater;
-import net.minecraft.world.level.redstone.NeighborUpdater;
 import net.minecraft.world.level.redstone.Orientation;
 
 // CollectingNeighborUpdater keeps mutable traversal state, so each worker needs its own instance.
 public final class ThreadLocalNeighborUpdater extends CollectingNeighborUpdater {
 
     private final Level level;
+    private volatile java.util.function.Consumer<BlockPos> debugListener;
     private final ThreadLocal<CollectingNeighborUpdater> perThread;
 
     public ThreadLocalNeighborUpdater(Level level, int maxChainedNeighborUpdates) {
@@ -22,8 +22,15 @@ public final class ThreadLocalNeighborUpdater extends CollectingNeighborUpdater 
             () -> new CollectingNeighborUpdater(level, maxChainedNeighborUpdates));
     }
 
+    @Override
+    public void setDebugListener(java.util.function.Consumer<BlockPos> listener) {
+        this.debugListener = listener;
+    }
+
     private CollectingNeighborUpdater current() {
-        return this.perThread.get();
+        CollectingNeighborUpdater updater = this.perThread.get();
+        updater.setDebugListener(this.debugListener);
+        return updater;
     }
 
     @Override
