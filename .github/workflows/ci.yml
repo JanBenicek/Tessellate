@@ -27,10 +27,12 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Build and unit tests
+        id: build
         run: bash ./gradlew build --no-daemon --stacktrace
       - name: NeoForge GameTests
         run: bash ./gradlew :neoforge:runGameTestServer --no-daemon --stacktrace
       - name: Fabric GameTests
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: bash ./gradlew :fabric:runFabricGameTest --no-daemon --stacktrace
       - name: Upload mod JARs
         uses: actions/upload-artifact@v7
