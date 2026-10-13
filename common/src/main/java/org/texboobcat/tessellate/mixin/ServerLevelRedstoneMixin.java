@@ -32,11 +32,11 @@ public abstract class ServerLevelRedstoneMixin {
     }
 
     @Inject(method = "updateNeighborsAtExceptFromFacing", at = @At("HEAD"), cancellable = true)
-    private void tessellate$deferNeighborsExcept(BlockPos pos, Block block, Direction facing, CallbackInfo ci) {
+    private void tessellate$deferNeighborsExcept(BlockPos pos, Block block, Direction facing, net.minecraft.world.level.redstone.Orientation orientation, CallbackInfo ci) {
         ServerLevel level = (ServerLevel) (Object) this;
         if (!RedstoneUpdates.canRun(level, pos)) {
             BlockPos source = pos.immutable();
-            RedstoneUpdates.defer(() -> level.updateNeighborsAtExceptFromFacing(source, block, facing));
+            RedstoneUpdates.defer(() -> level.updateNeighborsAtExceptFromFacing(source, block, facing, orientation));
             ci.cancel();
         }
     }

@@ -28,7 +28,7 @@ class OwnershipTest {
         RegionThreadContext.clear();
     }
 
-    // Matches ChunkPos.asLong: x low, z high.
+    // Matches ChunkPos.pack: x low, z high.
     private static long chunk(int x, int z) {
         return ((long) z << 32) | (x & 0xFFFFFFFFL);
     }

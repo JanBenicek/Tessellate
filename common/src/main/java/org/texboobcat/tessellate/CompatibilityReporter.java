@@ -162,7 +162,7 @@ public final class CompatibilityReporter {
             .withStyle(ChatFormatting.RED)
             .append(Component.literal("[Copy compatibility report]")
                 .withStyle(style -> style.withColor(ChatFormatting.YELLOW).withUnderlined(true)
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD,
+                    .withClickEvent(new ClickEvent.CopyToClipboard(
                         issueReport(report, reason)))));
         currentServer.execute(() -> currentServer.getPlayerList()
             .broadcastSystemMessage(message, false));

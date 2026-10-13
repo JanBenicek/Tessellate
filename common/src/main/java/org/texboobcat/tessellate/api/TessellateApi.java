@@ -125,7 +125,7 @@ public final class TessellateApi {
         Objects.requireNonNull(pos, "pos");
         RegionThreadContext.Binding binding = RegionThreadContext.currentBinding();
         return binding != null
-            && binding.levelKey().equals(level.dimension().location().toString())
+            && binding.levelKey().equals(level.dimension().identifier().toString())
             && binding.region().ownsChunk(pos.getX() >> 4, pos.getZ() >> 4);
     }
 
@@ -133,7 +133,7 @@ public final class TessellateApi {
     public static void requireCurrentRegion(ServerLevel level, BlockPos pos) {
         if (!ownsCurrentRegion(level, pos)) {
             throw new IllegalStateException("current region does not own " + pos + " in "
-                + level.dimension().location());
+                + level.dimension().identifier());
         }
     }
 
@@ -184,7 +184,7 @@ public final class TessellateApi {
         executeOnMainThread(() -> {
             LevelRegionIndex index = RegionTracker.index(level);
             if (index != null) {
-                index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+                index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                     target.getX() >> 4, target.getZ() >> 4));
             }
             work.run();

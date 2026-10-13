@@ -104,9 +104,12 @@ public final class ParallelNaturalSpawner {
         private final int[] localLimits;
         private final int[] globalCeilings;
 
+        private final ServerLevel level;
+
         public State(ServerLevel level, int spawnableChunkCount,
                      Object2IntMap<MobCategory> globalCounts, Iterable<Entity> entities,
                      LongFunction<LevelChunk> chunks) {
+            this.level = level;
             this.chunks = chunks;
             this.players = level.players().stream()
                 .filter(player -> !player.isSpectator())
@@ -154,7 +157,7 @@ public final class ParallelNaturalSpawner {
                 return;
             }
             BlockPos pos = entity.blockPosition();
-            LevelChunk chunk = this.chunks.apply(ChunkPos.asLong(pos));
+            LevelChunk chunk = this.chunks.apply(ChunkPos.pack(pos));
             if (chunk == null) {
                 return;
             }
@@ -177,7 +180,7 @@ public final class ParallelNaturalSpawner {
         }
 
         private void addLocalMob(MobCategory category, BlockPos pos, int[][] initialLocal) {
-            for (int player : playersNear(new ChunkPos(pos))) {
+            for (int player : playersNear(ChunkPos.containing(pos))) {
                 initialLocal[player][category.ordinal()]++;
             }
         }
@@ -211,7 +214,7 @@ public final class ParallelNaturalSpawner {
             BlockPos pos = mob.blockPosition();
             if (candidate == null || candidate.type() != mob.getType()
                 || !candidate.pos().equals(pos)) {
-                LevelChunk chunk = this.chunks.apply(ChunkPos.asLong(pos));
+                LevelChunk chunk = this.chunks.apply(ChunkPos.pack(pos));
                 if (chunk == null) {
                     throw new IllegalStateException("natural spawn moved into an unloaded chunk");
                 }
@@ -222,7 +225,7 @@ public final class ParallelNaturalSpawner {
             }
 
             int category = mob.getType().getCategory().ordinal();
-            int[] nearby = playersNear(new ChunkPos(pos));
+            int[] nearby = playersNear(ChunkPos.containing(pos));
             Candidate admitted = candidate;
             Charge charge = new Charge(pos.immutable(), candidate.charge());
             NaturalSpawnReservations.Reservation reservation = this.caps.tryReserve(
@@ -274,11 +277,11 @@ public final class ParallelNaturalSpawner {
         }
 
         @Nullable
-        private static MobSpawnSettings.MobSpawnCost cost(EntityType<?> type, BlockPos pos,
+        private MobSpawnSettings.MobSpawnCost cost(EntityType<?> type, BlockPos pos,
                                                            ChunkAccess chunk) {
-            return chunk.getNoiseBiome(QuartPos.fromBlock(pos.getX()),
-                    QuartPos.fromBlock(pos.getY()), QuartPos.fromBlock(pos.getZ()))
-                .value().getMobSettings().getMobSpawnCost(type);
+            return this.level.environmentAttributes().getValue(
+                net.minecraft.world.attribute.EnvironmentAttributes.NATURAL_MOB_SPAWNS, pos)
+                .getMobSpawnCost(type);
         }
 
         private void assertCaps() {

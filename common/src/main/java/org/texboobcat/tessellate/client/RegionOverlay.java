@@ -1,13 +1,12 @@
 package org.texboobcat.tessellate.client;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.debug.DebugRenderer;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.gizmos.Gizmos;
+import net.minecraft.gizmos.GizmoStyle;
+import net.minecraft.gizmos.SimpleGizmoCollector;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.texboobcat.tessellate.network.RegionVisualizationPayload;
@@ -46,29 +45,31 @@ public final class RegionOverlay {
         state = new State(payload, Map.copyOf(bySection), System.nanoTime());
     }
 
-    public static void renderWorld(PoseStack poseStack, Camera view, DeltaTracker partialTick) {
+    public static void renderWorld(Camera view, DeltaTracker partialTick) {
         State current = state;
         Minecraft minecraft = Minecraft.getInstance();
         if (!current.active() || minecraft.player == null || minecraft.level == null) {
             return;
         }
 
-        Vec3 camera = view.getPosition();
-        double minY = minecraft.level.getMinBuildHeight();
-        double maxY = minecraft.level.getMaxBuildHeight();
+        Vec3 camera = view.position();
+        double minY = minecraft.level.getMinY();
+        double maxY = minecraft.level.getMaxY();
         int cellSize = 1 << (current.payload().sectionShift() + 4);
         float pulse = 0.5F + 0.5F * (float) Math.sin(
             (minecraft.level.getGameTime() + partialTick.getGameTimeDeltaPartialTick(false)) * 0.16);
 
-        MultiBufferSource.BufferSource buffers = minecraft.renderBuffers().bufferSource();
-        for (RegionVisualizationPayload.Cell cell : current.payload().cells()) {
-            renderCell(current, cell, poseStack, buffers, camera, minY, maxY, cellSize, pulse);
+        SimpleGizmoCollector collector = new SimpleGizmoCollector();
+        try (var ignored = Gizmos.withCollector(collector)) {
+            for (RegionVisualizationPayload.Cell cell : current.payload().cells()) {
+                renderCell(current, cell, camera, minY, maxY, cellSize, pulse);
+            }
         }
-        buffers.endBatch(RenderType.debugFilledBox());
+        minecraft.levelRenderer.addMainThreadGizmos(collector.drainGizmos());
     }
 
     private static void renderCell(State current, RegionVisualizationPayload.Cell cell,
-                                   PoseStack poseStack, MultiBufferSource buffers, Vec3 camera,
+                                   Vec3 camera,
                                    double minY, double maxY, int cellSize, float pulse) {
         int sectionX = RegionSectionPos.x(cell.section());
         int sectionZ = RegionSectionPos.z(cell.section());
@@ -87,39 +88,39 @@ public final class RegionOverlay {
             ? 0.11F + pulse * 0.05F : 0.075F;
 
         if (!sameRegion(current, sectionX - 1, sectionZ, cell.regionId())) {
-            renderBox(poseStack, buffers, camera, minX - 0.06, minY, minZ,
+            renderBox( minX - 0.06, minY, minZ,
                 minX + 0.06, maxY, minZ + cellSize, red, green, blue, wallAlpha);
         }
         if (!sameRegion(current, sectionX + 1, sectionZ, cell.regionId())) {
-            renderBox(poseStack, buffers, camera, minX + cellSize - 0.06, minY, minZ,
+            renderBox( minX + cellSize - 0.06, minY, minZ,
                 minX + cellSize + 0.06, maxY, minZ + cellSize, red, green, blue, wallAlpha);
         }
         if (!sameRegion(current, sectionX, sectionZ - 1, cell.regionId())) {
-            renderBox(poseStack, buffers, camera, minX, minY, minZ - 0.06,
+            renderBox( minX, minY, minZ - 0.06,
                 minX + cellSize, maxY, minZ + 0.06, red, green, blue, wallAlpha);
         }
         if (!sameRegion(current, sectionX, sectionZ + 1, cell.regionId())) {
-            renderBox(poseStack, buffers, camera, minX, minY, minZ + cellSize - 0.06,
+            renderBox( minX, minY, minZ + cellSize - 0.06,
                 minX + cellSize, maxY, minZ + cellSize + 0.06, red, green, blue, wallAlpha);
         }
     }
 
-    public static void renderHud(GuiGraphics graphics) {
+    public static void renderHud(GuiGraphicsExtractor graphics) {
         State current = state;
         Minecraft minecraft = Minecraft.getInstance();
-        if (!current.active() || minecraft.options.hideGui || minecraft.player == null) {
+        if (!current.active() || minecraft.gui.hud.isHidden() || minecraft.player == null) {
             return;
         }
         drawMap(graphics, minecraft, current.payload());
     }
 
-    private static void drawMap(GuiGraphics graphics, Minecraft minecraft,
+    private static void drawMap(GuiGraphicsExtractor graphics, Minecraft minecraft,
                                 RegionVisualizationPayload payload) {
         int left = graphics.guiWidth() - PANEL_WIDTH - 8;
         int top = 8;
         graphics.fill(left, top, left + PANEL_WIDTH, top + PANEL_HEIGHT, 0xC010141A);
-        graphics.renderOutline(left, top, PANEL_WIDTH, PANEL_HEIGHT, 0xFF596273);
-        graphics.drawString(minecraft.font,
+        graphics.outline(left, top, PANEL_WIDTH, PANEL_HEIGHT, 0xFF596273);
+        graphics.text(minecraft.font,
             "TESSELLATE  " + uniqueRegionCount(payload.cells()) + " REGIONS  |  "
                 + payload.parallelRegions() + " PARALLEL",
             left + 7, top + 6, 0xFFF1F4FA, false);
@@ -133,7 +134,7 @@ public final class RegionOverlay {
             drawCells(graphics, payload, mapLeft, mapTop, mapWidth, mapHeight);
         }
 
-        graphics.drawString(minecraft.font,
+        graphics.text(minecraft.font,
             "merges " + payload.merges() + "  splits " + payload.splits(),
             left + 7, top + 96, 0xFF8F99A8, false);
         List<RegionVisualizationPayload.Cell> regions = payload.cells().stream()
@@ -150,7 +151,7 @@ public final class RegionOverlay {
             String label = "R" + cell.regionId() + " T"
                 + (cell.workerIndex() < 0 ? "-" : cell.workerIndex())
                 + " " + String.format(java.util.Locale.ROOT, "%.1fms", cell.tickMillis());
-            graphics.drawString(minecraft.font, label, x + 9, top + 109, 0xFFD7DCE5, false);
+            graphics.text(minecraft.font, label, x + 9, top + 109, 0xFFD7DCE5, false);
             x += minecraft.font.width(label) + 18;
             if (x > left + PANEL_WIDTH - 45) {
                 break;
@@ -158,7 +159,7 @@ public final class RegionOverlay {
         }
     }
 
-    private static void drawCells(GuiGraphics graphics, RegionVisualizationPayload payload,
+    private static void drawCells(GuiGraphicsExtractor graphics, RegionVisualizationPayload payload,
                                   int left, int top, int width, int height) {
         int minX = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE;
@@ -185,7 +186,7 @@ public final class RegionOverlay {
             int y = (int) Math.floor(originY + (RegionSectionPos.z(cell.section()) - minZ) * scale);
             graphics.fill(x, y, x + size, y + size, 0xD0000000 | color(cell.regionId()));
             if (cell.regionId() == payload.currentRegionId()) {
-                graphics.renderOutline(x, y, size, size, 0xFFFFFFFF);
+                graphics.outline(x, y, size, size, 0xFFFFFFFF);
             }
         }
     }
@@ -207,14 +208,13 @@ public final class RegionOverlay {
         return dx * dx + dz * dz;
     }
 
-    private static void renderBox(PoseStack poseStack, MultiBufferSource buffers, Vec3 camera,
+    private static void renderBox(
                                   double minX, double minY, double minZ,
                                   double maxX, double maxY, double maxZ,
                                   float red, float green, float blue, float alpha) {
-        DebugRenderer.renderFilledBox(poseStack, buffers,
-            new AABB(minX - camera.x, minY - camera.y, minZ - camera.z,
-                maxX - camera.x, maxY - camera.y, maxZ - camera.z),
-            red, green, blue, alpha);
+        int argb = ((int) (alpha * 255) << 24) | ((int) (red * 255) << 16)
+            | ((int) (green * 255) << 8) | (int) (blue * 255);
+        Gizmos.cuboid(new AABB(minX, minY, minZ, maxX, maxY, maxZ), GizmoStyle.fill(argb));
     }
 
     private static int color(int regionId) {

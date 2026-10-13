@@ -41,7 +41,7 @@ class LevelRegionIndexCompatibilityTest {
         RegionWorkers.start();
         try {
             RegionWorkers.submit(() -> deferred.set(CompatibilityTicks.deferEntity(
-                EntityType.ARMADILLO, () -> ran.set(true))), failure::set);
+                net.minecraft.world.entity.EntityTypes.ARMADILLO, () -> ran.set(true))), failure::set);
             RegionWorkers.awaitIdle();
 
             assertNull(failure.get());

@@ -14,6 +14,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIterators;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.AbortableIterationConsumer;
+import net.minecraft.util.Continuation;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.entity.EntityAccess;
 import net.minecraft.world.level.entity.EntitySection;

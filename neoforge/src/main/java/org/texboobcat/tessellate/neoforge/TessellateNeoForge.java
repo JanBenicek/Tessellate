@@ -14,6 +14,7 @@ public final class TessellateNeoForge {
     public TessellateNeoForge(IEventBus modEventBus, ModContainer modContainer) {
         modEventBus.addListener(TessellateNeoForgeConfig::onLoad);
         modContainer.registerConfig(ModConfig.Type.COMMON, TessellateNeoForgeConfig.SPEC);
+        org.texboobcat.tessellate.neoforge.gametest.RegionalChunkGameTests.register(modEventBus);
         Tessellate.init();
         if (FMLEnvironment.dist == Dist.CLIENT) {
             TessellateNeoForgeClient.init();

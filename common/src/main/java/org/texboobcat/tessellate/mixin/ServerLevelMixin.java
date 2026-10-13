@@ -103,10 +103,10 @@ public abstract class ServerLevelMixin {
             ServerLevel self = (ServerLevel) (Object) this;
             this.blockTicks = new RegionalLevelTicks<>(
                 this::isPositionTickingWithEntitiesLoaded,
-                self::getProfiler);
+                net.minecraft.util.profiling.Profiler::get);
             this.fluidTicks = new RegionalLevelTicks<>(
                 this::isPositionTickingWithEntitiesLoaded,
-                self::getProfiler);
+                net.minecraft.util.profiling.Profiler::get);
         }
     }
 
@@ -204,7 +204,7 @@ public abstract class ServerLevelMixin {
         }
         LevelRegionIndex index = RegionTracker.index((ServerLevel) (Object) this);
         if (index != null) {
-            index.leaseChunk(chunk.getPos().toLong());
+            index.leaseChunk(chunk.getPos().pack());
         }
     }
 

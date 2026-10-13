@@ -57,16 +57,16 @@ public final class RegionalChunkGameTestCases {
         LevelRegionIndex index = RegionTracker.index(level);
         BlockPos start = helper.absolutePos(BlockPos.ZERO).above(2);
         helper.assertTrue(index != null, "test level has no region index");
-        index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(start));
-        Region region = index.regionForChunk(new net.minecraft.world.level.ChunkPos(start));
+        index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(start));
+        Region region = index.regionForChunk(net.minecraft.world.level.ChunkPos.containing(start));
         helper.assertTrue(region != null, "test chunk has no region owner");
 
-        Entity entity = EntityType.ARMOR_STAND.create(level);
+        Entity entity = net.minecraft.world.entity.EntityTypes.ARMOR_STAND.create(level, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
         helper.assertTrue(entity != null, "could not create boundary-test entity");
         entity.setPos(start.getX() + 0.5, start.getY(), start.getZ() + 0.5);
         level.addFreshEntity(entity);
 
-        Entity spawned = EntityType.ARMOR_STAND.create(level);
+        Entity spawned = net.minecraft.world.entity.EntityTypes.ARMOR_STAND.create(level, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
         helper.assertTrue(spawned != null, "could not create worker-spawned entity");
         spawned.setPos(start.getX() + 1.5, start.getY(), start.getZ() + 0.5);
 
@@ -108,7 +108,7 @@ public final class RegionalChunkGameTestCases {
         BlockPos outputPos = new BlockPos((remoteChunkX << 4) + 14, start.getY(),
             (remoteChunkZ << 4) + 8);
         level.getChunkAt(outputPos).setBlockState(outputPos.east(),
-            Blocks.STONE.defaultBlockState(), false);
+            Blocks.STONE.defaultBlockState(), 0);
         helper.assertTrue(!level.hasChunkAt(outputPos.east(2)),
             "output-signal regression setup loaded the adjacent chunk");
         long unavailableBefore = RegionTracker.unavailableChunks();
@@ -160,10 +160,10 @@ public final class RegionalChunkGameTestCases {
     private static void assertPendingOutputSignalChunk(GameTestHelper helper, ServerLevel level,
                                                       BlockPos outputPos, long unavailableBefore) {
         var source = level.getChunkSource();
-        var pending = new net.minecraft.world.level.ChunkPos(outputPos.east(2));
+        var pending = net.minecraft.world.level.ChunkPos.containing(outputPos.east(2));
         var tickets = source.chunkMap.getDistanceManager();
         int ticketLevel = net.minecraft.server.level.ChunkLevel.byStatus(ChunkStatus.FULL);
-        tickets.addTicket(net.minecraft.server.level.TicketType.UNKNOWN, pending, ticketLevel, pending);
+        source.addTicketWithRadius(net.minecraft.server.level.TicketType.UNKNOWN, pending, 0);
         try {
             // Publish the holder without pumping the main-thread generation/completion tasks.
             tickets.runAllUpdates(source.chunkMap);
@@ -172,7 +172,7 @@ public final class RegionalChunkGameTestCases {
             promote.invoke(source.chunkMap);
             helper.assertTrue(level.hasChunkAt(outputPos.east(2)), "pending chunk has no ticket");
             RegionWorkers.runAllAndWait(List.of(() -> {
-                helper.assertTrue(source.getChunk(pending.x, pending.z, ChunkStatus.FULL, false) == null,
+                helper.assertTrue(source.getChunk(pending.x(), pending.z(), ChunkStatus.FULL, false) == null,
                     "pending chunk unexpectedly completed before the worker probe");
                 level.updateNeighbourForOutputSignal(outputPos, Blocks.STONE);
                 level.updateNeighbourForOutputSignal(outputPos.east(), Blocks.STONE);
@@ -183,8 +183,8 @@ public final class RegionalChunkGameTestCases {
             throw new IllegalStateException("could not publish the pending chunk holder", failure);
         } finally {
             // Finish the artificial promotion before releasing its ticket, including on failure.
-            source.getChunk(pending.x, pending.z, ChunkStatus.FULL, true);
-            tickets.removeTicket(net.minecraft.server.level.TicketType.UNKNOWN, pending, ticketLevel, pending);
+            source.getChunk(pending.x(), pending.z(), ChunkStatus.FULL, true);
+            source.removeTicketWithRadius(net.minecraft.server.level.TicketType.UNKNOWN, pending, 0);
         }
     }
 
@@ -228,8 +228,8 @@ public final class RegionalChunkGameTestCases {
         BlockPos mainPos = regionPos.east();
         BlockPos beaconPos = regionPos.south();
         helper.assertTrue(index != null, "test level has no region index");
-        index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(regionPos));
-        Region region = index.regionForChunk(new net.minecraft.world.level.ChunkPos(regionPos));
+        index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(regionPos));
+        Region region = index.regionForChunk(net.minecraft.world.level.ChunkPos.containing(regionPos));
         helper.assertTrue(region != null, "test chunk has no region owner");
 
         AtomicBoolean regionExecuted = new AtomicBoolean();
@@ -277,7 +277,7 @@ public final class RegionalChunkGameTestCases {
 
                 blockEntityBefore[0] = MainThreadBoundaries.snapshot(
                     MainThreadBoundaries.Boundary.MOD_COMPATIBILITY);
-                TessellateApi.registerMainThreadBlockEntity(BlockEntityType.BEACON);
+                TessellateApi.registerMainThreadBlockEntity(net.minecraft.world.level.block.entity.BlockEntityTypes.BEACON);
                 level.setBlockAndUpdate(beaconPos, Blocks.BEACON.defaultBlockState());
             })
             .thenExecuteAfter(10, () -> {
@@ -289,18 +289,22 @@ public final class RegionalChunkGameTestCases {
             })
             .thenExecute(() -> {
                 level.removeBlock(beaconPos, false);
-                TessellateApi.registerMainThreadEntity(EntityType.MARKER);
-                Entity probe = new Entity(EntityType.MARKER, level) {
+                TessellateApi.registerMainThreadEntity(net.minecraft.world.entity.EntityTypes.MARKER);
+                Entity probe = new Entity(net.minecraft.world.entity.EntityTypes.MARKER, level) {
+                    @Override
+                    public boolean hurtServer(ServerLevel serverLevel, net.minecraft.world.damagesource.DamageSource source, float amount) {
+                        return false;
+                    }
                     @Override
                     protected void defineSynchedData(SynchedEntityData.Builder builder) {
                     }
 
                     @Override
-                    protected void readAdditionalSaveData(CompoundTag tag) {
+                    protected void readAdditionalSaveData(net.minecraft.world.level.storage.ValueInput input) {
                     }
 
                     @Override
-                    protected void addAdditionalSaveData(CompoundTag tag) {
+                    protected void addAdditionalSaveData(net.minecraft.world.level.storage.ValueOutput output) {
                     }
 
                     @Override
@@ -334,7 +338,7 @@ public final class RegionalChunkGameTestCases {
         for (int i = 0; i < players.length; i++) {
             BlockPos position = cropPositions[i];
             players[i].teleportTo(level, position.getX() + 0.5, position.getY() + 2.0,
-                position.getZ() + 0.5, Set.of(), 0.0F, 0.0F);
+                position.getZ() + 0.5, Set.of(), 0.0F, 0.0F, false);
             level.getChunkSource().move(players[i]);
         }
 
@@ -342,7 +346,7 @@ public final class RegionalChunkGameTestCases {
         var mobSpawning = GameRules.SPAWN_MOBS;
         int oldRandomTicks = level.getGameRules().get(randomTicks);
         boolean oldMobSpawning = level.getGameRules().get(mobSpawning);
-        long oldDayTime = level.getDayTime();
+        long oldDayTime = level.getOverworldClockTime();
         PhaseStats.Snapshot spawningBefore = PhaseStats.snapshot(
             PhaseStats.Phase.NATURAL_SPAWNING);
         ParallelNaturalSpawner.Stats reservationsBefore = ParallelNaturalSpawner.stats();
@@ -351,7 +355,7 @@ public final class RegionalChunkGameTestCases {
 
         level.getGameRules().set(randomTicks, 3000, level.getServer());
         level.getGameRules().set(mobSpawning, true, level.getServer());
-        level.setDayTime(18000L);
+        level.clockManager().setTotalTicks(level.registryAccess().getOrThrow(net.minecraft.world.clock.WorldClocks.OVERWORLD), 18000L);
         for (BlockPos position : cropPositions) {
             level.setBlockAndUpdate(position.below(), Blocks.FARMLAND.defaultBlockState()
                 .setValue(FarmlandBlock.MOISTURE, FarmlandBlock.MAX_MOISTURE));
@@ -370,7 +374,7 @@ public final class RegionalChunkGameTestCases {
                     "player regions did not merge after moving together");
                 players[1].teleportTo(level, cropPositions[1].getX() + 0.5,
                     cropPositions[1].getY() + 2.0, cropPositions[1].getZ() + 0.5,
-                    Set.of(), 0.0F, 0.0F);
+                    Set.of(), 0.0F, 0.0F, false);
                 level.getChunkSource().move(players[1]);
                 topologyStage[0] = 2;
                 helper.fail("merged topology passed; waiting for the split and reload");
@@ -383,7 +387,7 @@ public final class RegionalChunkGameTestCases {
             for (int currentLocation = 0; currentLocation < cropPositions.length;
                  currentLocation++) {
                 BlockPos activeCrop = cropPositions[currentLocation];
-                index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+                index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                     activeCrop.getX() >> 4, activeCrop.getZ() >> 4));
                 var monsters = level.getEntitiesOfClass(Monster.class,
                     new AABB(activeCrop).inflate(128.0, 64.0, 128.0));
@@ -402,7 +406,7 @@ public final class RegionalChunkGameTestCases {
                 topologyVersion[0] = index.topologyVersion();
                 BlockPos together = cropPositions[0].offset(32, 0, 0);
                 players[1].teleportTo(level, together.getX() + 0.5, together.getY() + 2.0,
-                    together.getZ() + 0.5, Set.of(), 0.0F, 0.0F);
+                    together.getZ() + 0.5, Set.of(), 0.0F, 0.0F, false);
                 level.getChunkSource().move(players[1]);
                 topologyStage[0] = 1;
                 helper.fail("initial caps passed; waiting for the topology merge");
@@ -446,7 +450,7 @@ public final class RegionalChunkGameTestCases {
 
             level.getGameRules().set(randomTicks, oldRandomTicks, level.getServer());
             level.getGameRules().set(mobSpawning, oldMobSpawning, level.getServer());
-            level.setDayTime(oldDayTime);
+            level.clockManager().setTotalTicks(level.registryAccess().getOrThrow(net.minecraft.world.clock.WorldClocks.OVERWORLD), oldDayTime);
             for (ServerPlayer player : players) {
                 level.getServer().getPlayerList().remove(player);
             }
@@ -467,8 +471,8 @@ public final class RegionalChunkGameTestCases {
                 }
             }
 
-            Mob first = helper.spawnWithNoFreeWill(EntityType.ZOMBIE, new BlockPos(1, 1, 1));
-            Mob second = helper.spawnWithNoFreeWill(EntityType.ZOMBIE, new BlockPos(3, 1, 3));
+            Mob first = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(1, 1, 1));
+            Mob second = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(3, 1, 3));
             first.setOnGround(true);
             second.setOnGround(true);
 
@@ -525,11 +529,11 @@ public final class RegionalChunkGameTestCases {
             }
         }
 
-        Mob sheep = helper.spawn(EntityType.SHEEP, new BlockPos(2, 1, 2));
-        Mob attacker = helper.spawnWithNoFreeWill(EntityType.ZOMBIE, new BlockPos(2, 1, 3));
+        Mob sheep = helper.spawn(net.minecraft.world.entity.EntityTypes.SHEEP, new BlockPos(2, 1, 2));
+        Mob attacker = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(2, 1, 3));
         double sheepX = sheep.getX();
         double sheepZ = sheep.getZ();
-        helper.assertTrue(sheep.hurt(level.damageSources().mobAttack(attacker), 1.0F),
+        helper.assertTrue(sheep.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0F),
             "could not trigger sheep panic");
 
         helper.runAfterDelay(60, () -> {
@@ -552,7 +556,7 @@ public final class RegionalChunkGameTestCases {
                 (origin.getZ() >> 4 << 4) + 4);
             LevelRegionIndex index = RegionTracker.index(level);
             if (index != null) {
-                index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+                index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                     first.getX() >> 4, first.getZ() >> 4));
             }
             helper.assertTrue(level.getBlockTicks() instanceof RegionalLevelTicks,
@@ -591,7 +595,7 @@ public final class RegionalChunkGameTestCases {
                 "regional scheduler left copied ticks behind after cleanup");
 
             Region region = index == null ? null
-                : index.regionForChunk(new net.minecraft.world.level.ChunkPos(first));
+                : index.regionForChunk(net.minecraft.world.level.ChunkPos.containing(first));
             helper.assertTrue(region != null, "test chunk has no region owner");
             AtomicInteger executed = new AtomicInteger();
             level.getBlockTicks().schedule(

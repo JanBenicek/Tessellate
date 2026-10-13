@@ -26,6 +26,6 @@ public final class PlatformHooksImpl {
 
     public static boolean shouldForceTicks(ServerLevel level, DistanceManager distanceManager,
                                            long chunkPos) {
-        return level.getForcedChunks().contains(chunkPos);
+        return level.getChunkSource().getForceLoadedChunks().contains(chunkPos);
     }
 }

@@ -2,8 +2,7 @@ package org.texboobcat.tessellate.fabric.gametest;
 
 import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
-import net.fabricmc.fabric.api.gametest.v1.FabricGameTest;
-import net.minecraft.gametest.framework.GameTest;
+import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
@@ -17,58 +16,58 @@ import java.util.UUID;
 
 public final class RegionalChunkGameTests {
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "redstone-ownership")
+    @GameTest(maxTicks = 400, environment = "tessellate:redstone-ownership")
     public void loadedUnownedRedstoneUpdates(GameTestHelper helper) {
         org.texboobcat.tessellate.gametest.RedstoneGameTestCases.loadedUnownedUpdates(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "redstone-torches")
+    @GameTest(maxTicks = 400, environment = "tessellate:redstone-torches")
     public void torchBurnoutStaysLocal(GameTestHelper helper) {
         org.texboobcat.tessellate.gametest.RedstoneGameTestCases.torchBurnoutStaysLocal(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 200, batch = "redstone-boundary")
+    @GameTest(maxTicks = 200, environment = "tessellate:redstone-boundary")
     public void unloadedRedstoneUpdates(GameTestHelper helper) {
         org.texboobcat.tessellate.gametest.RedstoneGameTestCases.unloadedUpdates(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 400, batch = "redstone-circuits")
+    @GameTest(maxTicks = 400, environment = "tessellate:redstone-circuits")
     public void redstoneCircuitsAndConcurrentSignals(GameTestHelper helper) {
         org.texboobcat.tessellate.gametest.RedstoneGameTestCases.circuitsAndConcurrentSignals(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 100)
+    @GameTest(maxTicks = 100)
     public void mainThreadBoundaryHandoffs(GameTestHelper helper) {
         RegionalChunkGameTestCases.mainThreadBoundaryHandoffs(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 200)
+    @GameTest(maxTicks = 200)
     public void compatibilityApiRunsOnLiveOwners(GameTestHelper helper) {
         RegionalChunkGameTestCases.compatibilityApiRunsOnLiveOwners(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 4800, skyAccess = true)
+    @GameTest(maxTicks = 4800, skyAccess = true)
     public void regionalChunkTicksAndNaturalSpawning(GameTestHelper helper) {
         RegionalChunkGameTestCases.regionalChunkTicksAndNaturalSpawning(
             helper, RegionalChunkGameTests::makeMockPlayer);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 200)
+    @GameTest(maxTicks = 200)
     public void pathfindingIsConcurrentOnRegionWorkers(GameTestHelper helper) {
         RegionalChunkGameTestCases.pathfindingIsConcurrentOnRegionWorkers(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 120)
+    @GameTest(maxTicks = 120)
     public void mobAiTicksOnRegionWorkers(GameTestHelper helper) {
         RegionalChunkGameTestCases.mobAiTicksOnRegionWorkers(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 100)
+    @GameTest(maxTicks = 100)
     public void scheduledTickRouterPreservesVanillaContainerSemantics(GameTestHelper helper) {
         RegionalChunkGameTestCases.scheduledTickRouterPreservesVanillaContainerSemantics(helper);
     }
 
-    @GameTest(template = FabricGameTest.EMPTY_STRUCTURE, timeoutTicks = 100)
+    @GameTest(maxTicks = 100)
     public void blockEventRouterPreservesOrderDedupAndMainThreadPackets(GameTestHelper helper) {
         RegionalChunkGameTestCases.blockEventRouterPreservesOrderDedupAndMainThreadPackets(helper);
     }

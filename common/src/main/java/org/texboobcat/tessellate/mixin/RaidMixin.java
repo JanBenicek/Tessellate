@@ -31,7 +31,7 @@ public abstract class RaidMixin {
         }
         LevelRegionIndex index = RegionTracker.index(this.level);
         if (index != null) {
-            index.leaseChunk(net.minecraft.world.level.ChunkPos.asLong(
+            index.leaseChunk(net.minecraft.world.level.ChunkPos.pack(
                 this.center.getX() >> 4, this.center.getZ() >> 4));
         }
     }

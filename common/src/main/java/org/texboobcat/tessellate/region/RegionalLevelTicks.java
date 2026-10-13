@@ -42,7 +42,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     private static final class ChildLevelTicks<T> extends LevelTicks<T> implements WorkerOwned {
         private ChildLevelTicks(LongPredicate tickCheck, Supplier<ProfilerFiller> profiler) {
-            super(tickCheck, profiler);
+            super(tickCheck);
         }
     }
 
@@ -58,7 +58,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     public RegionalLevelTicks(LongPredicate tickCheck, Supplier<ProfilerFiller> profiler) {
         // The superclass remains empty. Every public operation below routes to a vanilla child.
-        super(tickCheck, profiler);
+        super(tickCheck);
         this.tickCheck = tickCheck;
         this.profiler = profiler;
         this.unowned = new ChildLevelTicks<>(tickCheck, profiler);
@@ -66,7 +66,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     @Override
     public void addContainer(ChunkPos chunkPos, LevelChunkTicks<T> chunkTicks) {
-        long key = chunkPos.toLong();
+        long key = chunkPos.pack();
         OwnedContainer<T> previous = this.containers.remove(key);
         if (previous != null) {
             locked(previous.ticks(), () -> previous.ticks().removeContainer(chunkPos));
@@ -78,7 +78,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     @Override
     public void removeContainer(ChunkPos chunkPos) {
-        OwnedContainer<T> owned = this.containers.remove(chunkPos.toLong());
+        OwnedContainer<T> owned = this.containers.remove(chunkPos.pack());
         if (owned != null) {
             locked(owned.ticks(), () -> owned.ticks().removeContainer(chunkPos));
             this.containersChanged = true;
@@ -87,7 +87,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     @Override
     public void schedule(ScheduledTick<T> tick) {
-        OwnedContainer<T> owned = this.containers.get(ChunkPos.asLong(tick.pos()));
+        OwnedContainer<T> owned = this.containers.get(ChunkPos.pack(tick.pos()));
         if (owned == null) {
             Util.pauseInIde(new IllegalStateException(
                 "Trying to schedule tick in not loaded position " + tick.pos()));
@@ -126,7 +126,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     @Override
     public boolean hasScheduledTick(BlockPos pos, T type) {
-        OwnedContainer<T> owned = this.containers.get(ChunkPos.asLong(pos));
+        OwnedContainer<T> owned = this.containers.get(ChunkPos.pack(pos));
         return owned != null && queryIsLocal(owned) && locked(owned.ticks(),
             () -> owned.ticks().hasScheduledTick(pos, type));
     }
@@ -139,7 +139,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     @Override
     public boolean willTickThisTick(BlockPos pos, T type) {
-        OwnedContainer<T> owned = this.containers.get(ChunkPos.asLong(pos));
+        OwnedContainer<T> owned = this.containers.get(ChunkPos.pack(pos));
         return owned != null && queryIsLocal(owned) && locked(owned.ticks(),
             () -> owned.ticks().willTickThisTick(pos, type));
     }
@@ -230,7 +230,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
         for (Map.Entry<Long, OwnedContainer<T>> entry : this.containers.entrySet()) {
             long key = entry.getKey();
             OwnedContainer<T> owned = entry.getValue();
-            Region region = regional ? index.regionForChunk(new ChunkPos(key)) : null;
+            Region region = regional ? index.regionForChunk(ChunkPos.unpack(key)) : null;
             int targetId = region == null ? UNOWNED : region.id();
             if (targetId >= 0) {
                 active.add(targetId);
@@ -239,7 +239,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
                 continue;
             }
 
-            ChunkPos pos = new ChunkPos(key);
+            ChunkPos pos = ChunkPos.unpack(key);
             LevelTicks<T> target = targetId < 0 ? this.unowned : child(targetId);
             locked(owned.ticks(), () -> owned.ticks().removeContainer(pos));
             locked(target, () -> target.addContainer(pos, owned.container()));
@@ -298,7 +298,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
                 int maxZ = SectionPos.blockToSectionCoord(area.maxZ());
                 for (int x = minX; x <= maxX; x++) {
                     for (int z = minZ; z <= maxZ; z++) {
-                        LevelChunkTicks<T> container = containers.get(ChunkPos.asLong(x, z));
+                        LevelChunkTicks<T> container = containers.get(ChunkPos.pack(x, z));
                         if (container != null) {
                             container.getAll().filter(inside).forEach(result::add);
                         }

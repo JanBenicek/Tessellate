@@ -42,7 +42,7 @@ public abstract class ChunkMapMixin {
     @Inject(method = "onFullChunkStatusChange", at = @At("HEAD"))
     private void tessellate$trackEntityTicking(ChunkPos chunkPos, FullChunkStatus status, CallbackInfo ci) {
         RegionTracker.onChunkStatusChange(
-            this.level, chunkPos.toLong(), status.isOrAfter(FullChunkStatus.ENTITY_TICKING));
+            this.level, chunkPos.pack(), status.isOrAfter(FullChunkStatus.ENTITY_TICKING));
     }
 
     // Autosave is opportunistic. If the candidate's region is still finishing an asynchronous
@@ -55,7 +55,7 @@ public abstract class ChunkMapMixin {
             return;
         }
         LevelRegionIndex index = RegionTracker.index(this.level);
-        if (index != null && !index.chunkIdle(holder.getPos().toLong())) {
+        if (index != null && !index.chunkIdle(holder.getPos().pack())) {
             RegionTracker.recordDeferredAutosave();
             cir.setReturnValue(false);
         }
@@ -71,7 +71,7 @@ public abstract class ChunkMapMixin {
         }
         LevelRegionIndex index = RegionTracker.index(this.level);
         if (index != null) {
-            index.leaseChunk(chunk.getPos().toLong());
+            index.leaseChunk(chunk.getPos().pack());
         }
     }
 }

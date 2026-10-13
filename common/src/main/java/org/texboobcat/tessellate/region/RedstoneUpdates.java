@@ -48,7 +48,7 @@ public final class RedstoneUpdates {
             return true;
         }
         if (!(level.getBlockTicks() instanceof RegionalLevelTicks<?> ticks)
-            || !level.dimension().location().toString().equals(binding.levelKey())) {
+            || !level.dimension().identifier().toString().equals(binding.levelKey())) {
             return false;
         }
         CheckedArea area = new CheckedArea(new WeakReference<>(level), binding, minX, maxX, minZ, maxZ);
@@ -62,7 +62,7 @@ public final class RedstoneUpdates {
     private static boolean checkChunks(Level level, CheckedArea area, RegionalLevelTicks<?> ticks) {
         for (int x = area.minX(); x <= area.maxX(); x++) {
             for (int z = area.minZ(); z <= area.maxZ(); z++) {
-                if (!ticks.isOwnedBy(ChunkPos.asLong(x, z), area.binding().region())
+                if (!ticks.isOwnedBy(ChunkPos.pack(x, z), area.binding().region())
                     || level.getChunkSource().getChunk(x, z, ChunkStatus.FULL, false) == null) {
                     return false;
                 }

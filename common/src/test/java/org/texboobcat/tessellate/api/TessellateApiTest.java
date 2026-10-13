@@ -27,22 +27,22 @@ class TessellateApiTest {
 
     @Test
     void registersMainThreadEntityTypes() {
-        assertFalse(TessellateApi.requiresMainThreadEntityTick(EntityType.ALLAY));
+        assertFalse(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.ALLAY));
 
-        TessellateApi.registerMainThreadEntity(EntityType.ALLAY);
+        TessellateApi.registerMainThreadEntity(net.minecraft.world.entity.EntityTypes.ALLAY);
 
-        assertTrue(TessellateApi.requiresMainThreadEntityTick(EntityType.ALLAY));
+        assertTrue(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.ALLAY));
         assertThrows(NullPointerException.class,
             () -> TessellateApi.registerMainThreadEntity(null));
     }
 
     @Test
     void registersMainThreadBlockEntityTypes() {
-        assertFalse(TessellateApi.requiresMainThreadBlockEntityTick(BlockEntityType.CHEST));
+        assertFalse(TessellateApi.requiresMainThreadBlockEntityTick(net.minecraft.world.level.block.entity.BlockEntityTypes.CHEST));
 
-        TessellateApi.registerMainThreadBlockEntity(BlockEntityType.CHEST);
+        TessellateApi.registerMainThreadBlockEntity(net.minecraft.world.level.block.entity.BlockEntityTypes.CHEST);
 
-        assertTrue(TessellateApi.requiresMainThreadBlockEntityTick(BlockEntityType.CHEST));
+        assertTrue(TessellateApi.requiresMainThreadBlockEntityTick(net.minecraft.world.level.block.entity.BlockEntityTypes.CHEST));
         assertThrows(NullPointerException.class,
             () -> TessellateApi.registerMainThreadBlockEntity(null));
     }
@@ -51,11 +51,11 @@ class TessellateApiTest {
     void resolvesConfiguredEntityIds() {
         TessellateApi.configureMainThreadEntities(List.of("minecraft:armadillo"));
 
-        assertTrue(TessellateApi.requiresMainThreadEntityTick(EntityType.ARMADILLO));
-        assertFalse(TessellateApi.requiresMainThreadEntityTick(EntityType.BAT));
+        assertTrue(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.ARMADILLO));
+        assertFalse(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.BAT));
 
         TessellateApi.configureMainThreadEntities(List.of());
-        assertFalse(TessellateApi.requiresMainThreadEntityTick(EntityType.ARMADILLO));
+        assertFalse(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.ARMADILLO));
     }
 
     @Test
@@ -63,8 +63,8 @@ class TessellateApiTest {
         TessellateApi.configureMainThreadEntities(List.of("minecraft:armadillo"));
         TessellateApi.configureRemoteMainThreadEntities(List.of("minecraft:bat"));
         try {
-            assertTrue(TessellateApi.requiresMainThreadEntityTick(EntityType.ARMADILLO));
-            assertTrue(TessellateApi.requiresMainThreadEntityTick(EntityType.BAT));
+            assertTrue(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.ARMADILLO));
+            assertTrue(TessellateApi.requiresMainThreadEntityTick(net.minecraft.world.entity.EntityTypes.BAT));
         } finally {
             TessellateApi.configureMainThreadEntities(List.of());
             TessellateApi.configureRemoteMainThreadEntities(List.of());
@@ -75,12 +75,12 @@ class TessellateApiTest {
     void resolvesRemoteBlockEntityIds() {
         TessellateApi.configureRemoteMainThreadBlockEntities(List.of("minecraft:barrel"));
         try {
-            assertTrue(TessellateApi.requiresMainThreadBlockEntityTick(BlockEntityType.BARREL));
+            assertTrue(TessellateApi.requiresMainThreadBlockEntityTick(net.minecraft.world.level.block.entity.BlockEntityTypes.BARREL));
             assertTrue(TessellateApi.hasMainThreadBlockEntityTypes());
         } finally {
             TessellateApi.configureRemoteMainThreadBlockEntities(List.of());
         }
-        assertFalse(TessellateApi.requiresMainThreadBlockEntityTick(BlockEntityType.BARREL));
+        assertFalse(TessellateApi.requiresMainThreadBlockEntityTick(net.minecraft.world.level.block.entity.BlockEntityTypes.BARREL));
     }
 
     @Test

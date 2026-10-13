@@ -28,9 +28,9 @@ public abstract class PacketUtilsMixin {
             || !(listener instanceof ServerGamePacketListenerImpl game)) {
             return;
         }
-        LevelRegionIndex index = RegionTracker.index(game.player.serverLevel());
+        LevelRegionIndex index = RegionTracker.index(game.player.level());
         if (index != null) {
-            index.leaseChunk(game.player.chunkPosition().toLong());
+            index.leaseChunk(game.player.chunkPosition().pack());
         }
     }
 }
