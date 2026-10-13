@@ -408,13 +408,46 @@ Tessellate protects the shared state it knows about, but it cannot make unknown 
 
 ## Minecraft 26.3 requirements
 
-The `mc-26.3` branch targets Minecraft **26.3**, Fabric Loader **0.19.5**,
+The current version on `master` targets Minecraft **26.3**, Fabric Loader **0.19.5**,
 Fabric API **0.162.0+26.3**, NeoForge **26.3.0.76**, and Architectury API **22.0.5**.
 The toolchain uses **JDK 25**, **Gradle 9.6.0**, and Architectury Loom's
 unobfuscated (`loom-no-remap`) mode. Minecraft 1.21.1 mappings are no longer used.
 
 The benchmarks and compatibility results elsewhere in this
 README describe the original Minecraft 1.21.1 version, not the 26.3 port.
+
+## Minecraft 26.3 validation
+
+Validation status for **Tessellate 1.3.0+26.3**, as of **2026-10-13**:
+
+| Check | Result |
+| --- | --- |
+| Automated checks on commit `82ad418` | [CI passed](https://github.com/JanBenicek/Tessellate/actions/runs/38364858192): 109 unit tests, PMD, 11 NeoForge GameTests and 12 Fabric GameTests |
+| Fabric dedicated server | Started successfully with Fabric Loader 0.19.5, Fabric API 0.162.0+26.3 and Architectury 22.0.5; the reported runtime was Java 27 |
+| One real player | Connected successfully; basic gameplay was reported working |
+| Multiple players in separate regions | Not yet tested on the live 26.3 server |
+| Live NeoForge client connection and third-party mod compatibility | Not yet verified for 26.3 |
+| Performance benchmark | The 1.21.1 benchmark above has not been repeated for 26.3 |
+
+The live Fabric server's `/tessellate regions` and `/tessellate phases` snapshots showed:
+
+- Independent region loops enabled on 10 workers, with one active Overworld region,
+  441 ticking chunks and a reported region rate of 20.0 TPS.
+- Entity ticks and pathfinding executing on workers; no phase failures reported.
+- Zero unavailable-chunk misses, zero topology drift, and no orphaned or misplaced entities.
+- All reported deferred boundaries balanced, with zero pending deferred operations or block events.
+- 1,116 spawn reservations committed, zero pending reservations, zero cap violations and zero failures.
+
+The region snapshot also reported **50 orphan block entities**. That observation needs follow-up;
+it is not counted as a clean result. The deferred queue reached a peak of 5,001 entries but was
+empty at the later snapshot. Phase timings are cumulative totals, not single-tick timings.
+Only one region was active, so these results do not establish concurrent multi-region scaling
+or a performance improvement.
+
+For the next live test, spread several players across distant loaded areas and confirm that
+`/tessellate regions` reports multiple regions. Exercise chunk generation, mobs, redstone,
+dimension changes, saving and a server restart. Capture both diagnostic commands and
+`logs/latest.log` to check region rates, failures, deferred queues and the block-entity count.
 
 ## Automatic builds
 
