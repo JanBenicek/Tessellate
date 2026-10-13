@@ -125,6 +125,7 @@ public final class RegionalChunkGameTestCases {
 
         assertWorkerChunkFuture(helper, level, start);
         assertChunkPacketWaitsForOwner(helper, level, start, index, region);
+        assertNavigationWaitsForOwner(helper, level, start, index, region);
 
         MainThreadBoundaries.Snapshot sectionBefore = MainThreadBoundaries.snapshot(
             MainThreadBoundaries.Boundary.ENTITY_LIFECYCLE);
@@ -205,6 +206,39 @@ public final class RegionalChunkGameTestCases {
         try {
             new net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData(chunk);
             helper.assertTrue(!state.isInFlight(), "chunk packet read its owner while it was still ticking");
+        } finally {
+            release.join();
+            state.release();
+        }
+    }
+
+    private static void assertNavigationWaitsForOwner(GameTestHelper helper, ServerLevel level,
+            BlockPos pos, LevelRegionIndex index, Region region) {
+        Mob probe = net.minecraft.world.entity.EntityTypes.ZOMBIE.create(
+            level, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+        helper.assertTrue(probe != null, "could not create navigation lease probe");
+        probe.setNoAi(true);
+        probe.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+        helper.assertTrue(level.addFreshEntity(probe), "could not insert navigation lease probe");
+        try {
+            var state = index.stateFor(region);
+            assertNavigationLease(helper, state,
+                () -> probe.getNavigation().createPath(pos.east(), 0));
+            assertNavigationLease(helper, state, probe.getNavigation()::recomputePath);
+        } finally {
+            probe.discard();
+        }
+    }
+
+    private static void assertNavigationLease(GameTestHelper helper,
+            org.texboobcat.tessellate.region.RegionTickState state, Runnable navigation) {
+        helper.assertTrue(state.tryClaim(), "could not claim navigation-test owner");
+        var release = java.util.concurrent.CompletableFuture.runAsync(state::release,
+            java.util.concurrent.CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS));
+        try {
+            navigation.run();
+            helper.assertTrue(!state.isInFlight(),
+                "main-thread navigation touched a mob while its owner was still ticking");
         } finally {
             release.join();
             state.release();
