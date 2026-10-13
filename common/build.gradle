@@ -9,7 +9,7 @@ tasks.matching { it.name == 'runClient' || it.name == 'runServer' }.configureEac
 }
 
 dependencies {
-    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    modImplementation "dev.architectury:architectury:${rootProject.architectury_api_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    implementation "dev.architectury:architectury:${rootProject.architectury_api_version}"
     compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
 }

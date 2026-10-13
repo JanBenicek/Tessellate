@@ -1,5 +1,5 @@
 plugins {
-    id 'com.github.johnrengelman.shadow'
+    id 'com.gradleup.shadow'
 }
 
 architectury {
@@ -52,9 +52,9 @@ configurations {
 }
 
 dependencies {
-    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
-    modImplementation "dev.architectury:architectury-fabric:${rootProject.architectury_api_version}"
+    implementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    implementation "dev.architectury:architectury-fabric:${rootProject.architectury_api_version}"
     implementation(include("com.electronwill.night-config:core:3.8.3"))
     implementation(include("com.electronwill.night-config:toml:3.8.3"))
 
@@ -84,13 +84,11 @@ sourceSets.main.resources.srcDir generateModMetadata
 
 shadowJar {
     configurations = [project.configurations.shadowBundle]
-    archiveClassifier = 'dev-shadow'
+    archiveClassifier = null
 }
 
-remapJar {
-    inputFile.set shadowJar.archiveFile
+tasks.named('build') {
     dependsOn shadowJar
-    archiveClassifier = null
 }
 
 jar {

@@ -1,8 +1,8 @@
 plugins {
     id 'base'
     id 'architectury-plugin' version "${architectury_plugin_version}"
-    id 'dev.architectury.loom' version "${loom_version}" apply false
-    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+    id 'dev.architectury.loom-no-remap' version "${loom_version}" apply false
+    id 'com.gradleup.shadow' version '9.3.0' apply false
 }
 
 architectury {
@@ -29,13 +29,13 @@ subprojects {
     apply plugin: 'idea'
     apply plugin: 'pmd'
     apply plugin: 'architectury-plugin'
-    apply plugin: 'dev.architectury.loom'
+    apply plugin: 'dev.architectury.loom-no-remap'
 
     base {
         archivesName = "${rootProject.mod_id}-${project.name}"
     }
 
-    java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+    java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 
     pmd {
         toolVersion = '7.16.0'
@@ -51,10 +51,7 @@ subprojects {
 
     dependencies {
         minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-        mappings loom.layered {
-            officialMojangMappings()
-            parchment("org.parchmentmc.data:parchment-${rootProject.parchment_minecraft_version}:${rootProject.parchment_mappings_version}@zip")
-        }
+
 
         testImplementation platform('org.junit:junit-bom:5.10.2')
         testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -64,7 +61,7 @@ subprojects {
 
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
-        options.release = 21
+        options.release = 25
     }
 
     tasks.named('test', Test) {

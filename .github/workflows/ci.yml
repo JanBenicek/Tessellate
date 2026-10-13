@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
   pull_request:
-    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -18,16 +16,28 @@ jobs:
   verify:
     name: Build and GameTest
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
       - name: Build and test
         run: bash ./gradlew build runGameTestServer --no-daemon --stacktrace
+      - name: Upload mod JARs
+        uses: actions/upload-artifact@v7
+        with:
+          name: tessellate-26.3-${{ github.sha }}
+          path: |
+            fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
+            !**/*-dev.jar
+            !**/*-dev-shadow.jar
+            !**/*-sources.jar
+          if-no-files-found: error
+          retention-days: 30
       - name: Upload failure reports
         if: failure()
         uses: actions/upload-artifact@v7
