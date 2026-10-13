@@ -54,5 +54,6 @@ jobs:
             run/gametest/logs/**
             run-fabric-gametest/logs/**
             fabric/build/fabric-gametest.xml
+            neoforge/build/gametest.xml
           if-no-files-found: ignore
           retention-days: 7

@@ -22,9 +22,10 @@ machine cluster is still one region, so Tessellate cannot split that work across
 doesn't replace single-thread optimizers such as [Lithium](https://modrinth.com/mod/lithium); the two
 solve different problems.
 
-## Current benchmark
+## Minecraft 1.21.1 benchmark
 
-For the current benchmark, we ran an ABBA sequence and restarted the server before every arm. The
+These results are from the original 1.21.1 version and have not been repeated on 26.3.
+For this benchmark, we ran an ABBA sequence and restarted the server before every arm. The
 test used four forced-loaded regions 2,048 blocks apart, each with exactly 1,200 persistent zombies
 (4,800 total). Both modes used adaptive throttling and the same nine-mod setup. The only setting we
 changed was `parallelTicking`.
@@ -412,17 +413,15 @@ The toolchain uses **JDK 25**, **Gradle 9.6.0**, and Architectury Loom's
 unobfuscated (`loom-no-remap`) mode. Minecraft 1.21.1 mappings are no longer used.
 
 **Migration and validation are in progress; this branch is not yet a verified
-playable release.** Local Gradle configuration is currently blocked by the build
-sandbox denying Loom's Unix-domain-socket capability probe
-(`CurrentPlatform.isUnixDomainSocketsSupported`: `SocketException: Operation not permitted`).
-Compilation, mixin compatibility, and GameTests must pass on a normal runner before release.
+playable release.** Both production JARs, unit tests and PMD now build successfully
+in GitHub Actions. Live GameTest validation is ongoing for both loaders.
 The benchmarks and compatibility results elsewhere in this
 README describe the original Minecraft 1.21.1 version, not the 26.3 port.
 
 ## Automatic builds
 
 GitHub Actions runs CI on every push to any branch and on every pull request.
-It runs `build` (including unit tests and PMD) and the NeoForge GameTests.
+It runs `build` (including unit tests and PMD), then NeoForge and Fabric GameTests.
 After a successful run, download `tessellate-26.3-<commit SHA>` from the run's
 **Artifacts** section. It contains the Fabric and NeoForge production JARs;
 install only the JAR matching your loader, together with the required dependencies.

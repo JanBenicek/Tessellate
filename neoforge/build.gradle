@@ -28,10 +28,11 @@ loom {
         }
         gameTestServer {
             server()
+            forgeTemplate 'gameTestServer'
             runDir '../run/gametest'
             property 'neoforge.enableGameTest', 'true'
-            property 'neoforge.gameTestServer', 'true'
-            property 'neoforge.enabledGameTestNamespaces', modId
+            programArgs '--tests', "${modId}:*", '--report',
+                layout.buildDirectory.file('gametest.xml').get().asFile.absolutePath
         }
         data {
             data()

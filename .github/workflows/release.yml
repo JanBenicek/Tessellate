@@ -29,7 +29,10 @@ jobs:
             exit 1
           }
       - name: Build and test
-        run: bash ./gradlew build runGameTestServer --no-daemon --stacktrace
+        run: |
+          bash ./gradlew build --no-daemon --stacktrace
+          bash ./gradlew :neoforge:runGameTestServer --no-daemon --stacktrace
+          bash ./gradlew :fabric:runFabricGameTest --no-daemon --stacktrace
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
