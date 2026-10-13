@@ -11,6 +11,7 @@
     "CollectingNeighborUpdaterAccessor",
     "EntityCallbacksMixin",
     "EntityMixin",
+    "GameTestServerMixin",
     "EntityLookupMixin",
     "EntitySectionMixin",
     "accessor.EntitySectionStorageAccessor",

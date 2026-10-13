@@ -125,6 +125,7 @@ public final class RegionalChunkGameTestCases {
 
         assertWorkerChunkFuture(helper, level, start);
         assertChunkPacketWaitsForOwner(helper, level, start, index, region);
+        assertNavigationWaitsForOwner(helper, level, start, index, region);
 
         MainThreadBoundaries.Snapshot sectionBefore = MainThreadBoundaries.snapshot(
             MainThreadBoundaries.Boundary.ENTITY_LIFECYCLE);
@@ -161,29 +162,35 @@ public final class RegionalChunkGameTestCases {
                                                       BlockPos outputPos, long unavailableBefore) {
         var source = level.getChunkSource();
         var pending = net.minecraft.world.level.ChunkPos.containing(outputPos.east(2));
-        var tickets = source.chunkMap.getDistanceManager();
-        int ticketLevel = net.minecraft.server.level.ChunkLevel.byStatus(ChunkStatus.FULL);
         source.addTicketWithRadius(net.minecraft.server.level.TicketType.UNKNOWN, pending, 0);
         try {
-            // Publish the holder without pumping the main-thread generation/completion tasks.
-            tickets.runAllUpdates(source.chunkMap);
-            var promote = net.minecraft.server.level.ChunkMap.class.getDeclaredMethod("promoteChunkMap");
-            promote.setAccessible(true);
-            promote.invoke(source.chunkMap);
-            helper.assertTrue(level.hasChunkAt(outputPos.east(2)), "pending chunk has no ticket");
-            RegionWorkers.runAllAndWait(List.of(() -> {
-                helper.assertTrue(source.getChunk(pending.x(), pending.z(), ChunkStatus.FULL, false) == null,
-                    "pending chunk unexpectedly completed before the worker probe");
-                level.updateNeighbourForOutputSignal(outputPos, Blocks.STONE);
-                level.updateNeighbourForOutputSignal(outputPos.east(), Blocks.STONE);
-            }, () -> { }));
-            helper.assertTrue(RegionTracker.unavailableChunks() == unavailableBefore,
-                "a comparator read tried to load a ticketed but unavailable chunk");
-        } catch (ReflectiveOperationException failure) {
-            throw new IllegalStateException("could not publish the pending chunk holder", failure);
-        } finally {
-            // Finish the artificial promotion before releasing its ticket, including on failure.
             source.getChunk(pending.x(), pending.z(), ChunkStatus.FULL, true);
+            var holder = ((org.texboobcat.tessellate.mixin.ChunkMapInvoker) source.chunkMap)
+                .tessellate$getVisibleChunkIfPresent(pending.pack());
+            helper.assertTrue(holder != null, "pending chunk has no holder");
+            var statusField = net.minecraft.server.level.GenerationChunkHolder.class
+                .getDeclaredField("highestAllowedStatus");
+            statusField.setAccessible(true);
+            Object previousStatus = statusField.get(holder);
+            try {
+                // Keep the ticket, but pin availability below FULL for the worker probe.
+                // Relying on background generation to remain incomplete is a timing race.
+                statusField.set(holder, ChunkStatus.LIGHT);
+                helper.assertTrue(level.hasChunkAt(outputPos.east(2)), "pending chunk has no ticket");
+                RegionWorkers.runAllAndWait(List.of(() -> {
+                    helper.assertTrue(source.getChunk(pending.x(), pending.z(), ChunkStatus.FULL, false) == null,
+                        "pinned fixture unexpectedly exposed a FULL chunk");
+                    level.updateNeighbourForOutputSignal(outputPos, Blocks.STONE);
+                    level.updateNeighbourForOutputSignal(outputPos.east(), Blocks.STONE);
+                }, () -> { }));
+                helper.assertTrue(RegionTracker.unavailableChunks() == unavailableBefore,
+                    "a comparator read tried to load a ticketed but unavailable chunk");
+            } finally {
+                statusField.set(holder, previousStatus);
+            }
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("could not pin the pending chunk holder", failure);
+        } finally {
             source.removeTicketWithRadius(net.minecraft.server.level.TicketType.UNKNOWN, pending, 0);
         }
     }
@@ -199,6 +206,39 @@ public final class RegionalChunkGameTestCases {
         try {
             new net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData(chunk);
             helper.assertTrue(!state.isInFlight(), "chunk packet read its owner while it was still ticking");
+        } finally {
+            release.join();
+            state.release();
+        }
+    }
+
+    private static void assertNavigationWaitsForOwner(GameTestHelper helper, ServerLevel level,
+            BlockPos pos, LevelRegionIndex index, Region region) {
+        Mob probe = net.minecraft.world.entity.EntityTypes.ZOMBIE.create(
+            level, net.minecraft.world.entity.EntitySpawnReason.COMMAND);
+        helper.assertTrue(probe != null, "could not create navigation lease probe");
+        probe.setNoAi(true);
+        probe.setPos(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5);
+        helper.assertTrue(level.addFreshEntity(probe), "could not insert navigation lease probe");
+        try {
+            var state = index.stateFor(region);
+            assertNavigationLease(helper, state,
+                () -> probe.getNavigation().createPath(pos.east(), 0));
+            assertNavigationLease(helper, state, probe.getNavigation()::recomputePath);
+        } finally {
+            probe.discard();
+        }
+    }
+
+    private static void assertNavigationLease(GameTestHelper helper,
+            org.texboobcat.tessellate.region.RegionTickState state, Runnable navigation) {
+        helper.assertTrue(state.tryClaim(), "could not claim navigation-test owner");
+        var release = java.util.concurrent.CompletableFuture.runAsync(state::release,
+            java.util.concurrent.CompletableFuture.delayedExecutor(200, TimeUnit.MILLISECONDS));
+        try {
+            navigation.run();
+            helper.assertTrue(!state.isInFlight(),
+                "main-thread navigation touched a mob while its owner was still ticking");
         } finally {
             release.join();
             state.release();
@@ -528,28 +568,49 @@ public final class RegionalChunkGameTestCases {
 
     public static void mobAiTicksOnRegionWorkers(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();
-        for (int x = 0; x < 9; x++) {
-            for (int z = 0; z < 9; z++) {
+        var center = net.minecraft.world.level.ChunkPos.containing(
+            helper.absolutePos(new BlockPos(8, 1, 8)));
+        var addedTickets = new java.util.ArrayList<net.minecraft.world.level.ChunkPos>();
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                var pos = new net.minecraft.world.level.ChunkPos(center.x() + x, center.z() + z);
+                if (level.setChunkForced(pos.x(), pos.z(), true)) {
+                    addedTickets.add(pos);
+                }
+                level.getChunk(pos.x(), pos.z());
+            }
+        }
+        RedstoneGameTestCases.awaitFixtureChunks(level, center);
+        for (int x = 0; x < 17; x++) {
+            for (int z = 0; z < 17; z++) {
                 level.setBlockAndUpdate(helper.absolutePos(new BlockPos(x, 0, z)),
                     Blocks.STONE.defaultBlockState());
             }
         }
 
-        Mob sheep = helper.spawn(net.minecraft.world.entity.EntityTypes.SHEEP, new BlockPos(2, 1, 2));
-        Mob attacker = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(2, 1, 3));
+        Mob sheep = helper.spawn(net.minecraft.world.entity.EntityTypes.SHEEP, new BlockPos(8, 1, 8));
+        Mob attacker = helper.spawnWithNoFreeWill(net.minecraft.world.entity.EntityTypes.ZOMBIE, new BlockPos(8, 1, 9));
         double sheepX = sheep.getX();
         double sheepZ = sheep.getZ();
         helper.assertTrue(sheep.hurtServer(level, level.damageSources().mobAttack(attacker), 1.0F),
             "could not trigger sheep panic");
 
         helper.runAfterDelay(60, () -> {
+            RegionTracker.quiesceAndDrain();
             double dx = sheep.getX() - sheepX;
             double dz = sheep.getZ() - sheepZ;
-            helper.assertTrue(dx * dx + dz * dz > 0.25,
-                "damaged sheep did not run panic AI");
-            sheep.discard();
-            attacker.discard();
-            helper.succeed();
+            try {
+                helper.assertTrue(dx * dx + dz * dz > 0.25,
+                    "damaged sheep did not run panic AI; entityTicks=" + sheep.tickCount
+                        + ", noAI=" + sheep.isNoAi() + ", displacementSquared=" + (dx * dx + dz * dz));
+                helper.succeed();
+            } finally {
+                sheep.discard();
+                attacker.discard();
+                for (var pos : addedTickets) {
+                    level.setChunkForced(pos.x(), pos.z(), false);
+                }
+            }
         });
     }
 
