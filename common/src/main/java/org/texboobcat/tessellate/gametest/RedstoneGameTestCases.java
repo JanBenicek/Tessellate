@@ -417,7 +417,7 @@ public final class RedstoneGameTestCases {
         }
     }
 
-    private static void awaitFixtureChunks(ServerLevel level, ChunkPos center) {
+    static void awaitFixtureChunks(ServerLevel level, ChunkPos center) {
         // GameTestServer runs without a tick delay. Await promotion rather than spending
         // the test's tick budget while background chunk-generation tasks are still pending.
         RegionTracker.quiesceAndDrain();
