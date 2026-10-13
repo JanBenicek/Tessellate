@@ -31,7 +31,7 @@ loom {
             runDir '../run/gametest'
             property 'neoforge.enableGameTest', 'true'
             property 'neoforge.gameTestServer', 'true'
-            property 'neoforge.enabledGameTestNamespaces', "${modId},minecraft"
+            property 'neoforge.enabledGameTestNamespaces', modId
         }
         data {
             data()

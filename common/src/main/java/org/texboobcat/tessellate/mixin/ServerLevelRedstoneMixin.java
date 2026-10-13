@@ -21,7 +21,7 @@ public abstract class ServerLevelRedstoneMixin {
     protected abstract void tickBlock(BlockPos pos, Block block);
 
     // NeoForge reads the source for its event hook before reaching the neighbor updater.
-    @Inject(method = "updateNeighborsAt", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "updateNeighborsAt(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/Block;Lnet/minecraft/world/level/redstone/Orientation;)V", at = @At("HEAD"), cancellable = true)
     private void tessellate$deferNeighbors(BlockPos pos, Block block, net.minecraft.world.level.redstone.Orientation orientation, CallbackInfo ci) {
         ServerLevel level = (ServerLevel) (Object) this;
         if (!RedstoneUpdates.canRun(level, pos)) {

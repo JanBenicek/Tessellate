@@ -102,11 +102,9 @@ public abstract class ServerLevelMixin {
         if (Config.regionsEnabled) {
             ServerLevel self = (ServerLevel) (Object) this;
             this.blockTicks = new RegionalLevelTicks<>(
-                this::isPositionTickingWithEntitiesLoaded,
-                net.minecraft.util.profiling.Profiler::get);
+                this::isPositionTickingWithEntitiesLoaded);
             this.fluidTicks = new RegionalLevelTicks<>(
-                this::isPositionTickingWithEntitiesLoaded,
-                net.minecraft.util.profiling.Profiler::get);
+                this::isPositionTickingWithEntitiesLoaded);
         }
     }
 

@@ -41,13 +41,12 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
     }
 
     private static final class ChildLevelTicks<T> extends LevelTicks<T> implements WorkerOwned {
-        private ChildLevelTicks(LongPredicate tickCheck, Supplier<ProfilerFiller> profiler) {
+        private ChildLevelTicks(LongPredicate tickCheck) {
             super(tickCheck);
         }
     }
 
     private final LongPredicate tickCheck;
-    private final Supplier<ProfilerFiller> profiler;
     private final LevelTicks<T> unowned;
     private final Map<Integer, LevelTicks<T>> regions = new ConcurrentHashMap<>();
     private final Map<Long, OwnedContainer<T>> containers = new ConcurrentHashMap<>();
@@ -56,12 +55,11 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
     private boolean containersChanged = true;
     private long topologyVersion = Long.MIN_VALUE;
 
-    public RegionalLevelTicks(LongPredicate tickCheck, Supplier<ProfilerFiller> profiler) {
+    public RegionalLevelTicks(LongPredicate tickCheck) {
         // The superclass remains empty. Every public operation below routes to a vanilla child.
         super(tickCheck);
         this.tickCheck = tickCheck;
-        this.profiler = profiler;
-        this.unowned = new ChildLevelTicks<>(tickCheck, profiler);
+        this.unowned = new ChildLevelTicks<>(tickCheck);
     }
 
     @Override
@@ -272,7 +270,7 @@ public final class RegionalLevelTicks<T> extends LevelTicks<T> {
 
     private LevelTicks<T> child(int regionId) {
         return this.regions.computeIfAbsent(regionId,
-            ignored -> new ChildLevelTicks<>(this.tickCheck, this.profiler));
+            ignored -> new ChildLevelTicks<>(this.tickCheck));
     }
 
     private List<LevelTicks<T>> schedulers() {

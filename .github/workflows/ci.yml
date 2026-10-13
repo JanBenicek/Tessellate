@@ -26,8 +26,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
-      - name: Build and test
-        run: bash ./gradlew build runGameTestServer --no-daemon --stacktrace
+      - name: Build and unit tests
+        run: bash ./gradlew build --no-daemon --stacktrace
+      - name: NeoForge GameTests
+        run: bash ./gradlew :neoforge:runGameTestServer --no-daemon --stacktrace
+      - name: Fabric GameTests
+        run: bash ./gradlew :fabric:runFabricGameTest --no-daemon --stacktrace
       - name: Upload mod JARs
         uses: actions/upload-artifact@v7
         with:
@@ -48,5 +52,7 @@ jobs:
           path: |
             **/build/reports/**
             run/gametest/logs/**
+            run-fabric-gametest/logs/**
+            fabric/build/fabric-gametest.xml
           if-no-files-found: ignore
           retention-days: 7
