@@ -324,8 +324,8 @@ Stav ověření **Tessellate 1.3.0+26.3** ke dni **13. 10. 2026**:
 | Automatické kontroly commitu `82ad418` | [CI prošlo](https://github.com/JanBenicek/Tessellate/actions/runs/38364858192): 109 jednotkových testů, PMD, 11 NeoForge GameTests a 12 Fabric GameTests |
 | Dedikovaný Fabric server | Úspěšně nastartoval s Fabric Loader 0.19.5, Fabric API 0.162.0+26.3 a Architectury 22.0.5; hlášené prostředí používalo Javu 27 |
 | Jeden skutečný hráč | Úspěšně se připojil; základní hraní bylo hlášené jako funkční |
-| Více hráčů v oddělených regionech | Na živém serveru 26.3 zatím netestováno |
-| Připojení klienta k živému NeoForge serveru a kompatibilita dalších módů | Pro 26.3 zatím neověřeno |
+| Více hráčů v oddělených regionech | V pozdějším živém testu se připojili dva hráči; hopper vyvolal sériový režim. Dlouhodobé paralelní hraní ve více regionech zatím není ověřené |
+| Připojení klienta k živému NeoForge serveru a kompatibilita dalších módů | Připojení k NeoForge zatím neověřeno; Fabric nastartoval s Carpet, Distant Horizons, FerriteCore a squaremap, ale úplná kompatibilita není potvrzená |
 | Výkonnostní benchmark | Uvedený benchmark pro 1.21.1 nebyl zopakován na 26.3 |
 
 Výpisy `/tessellate regions` a `/tessellate phases` ze živého Fabric serveru ukázaly:
