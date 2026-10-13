@@ -135,7 +135,7 @@ public final class RegionalChunkGameTests {
                 name -> event.registerEnvironment(Identifier.fromNamespaceAndPath("tessellate", name)));
             var data = new TestData<>(environment, Level.OVERWORLD,
                 Identifier.withDefaultNamespace("bastion/blocks/air"), 120, 20, true,
-                Rotation.NONE, false, 1, 1, false, 1);
+                Rotation.NONE, false, 1, 1, false, 16);
             event.registerTest(id, new FunctionGameTestInstance(
                 net.minecraft.resources.ResourceKey.create(Registries.TEST_FUNCTION, id), data));
         }

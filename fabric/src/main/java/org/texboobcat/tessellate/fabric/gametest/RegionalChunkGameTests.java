@@ -57,7 +57,7 @@ public final class RegionalChunkGameTests {
         RegionalChunkGameTestCases.pathfindingIsConcurrentOnRegionWorkers(helper);
     }
 
-    @GameTest(maxTicks = 120)
+    @GameTest(maxTicks = 120, padding = 16)
     public void mobAiTicksOnRegionWorkers(GameTestHelper helper) {
         RegionalChunkGameTestCases.mobAiTicksOnRegionWorkers(helper);
     }
