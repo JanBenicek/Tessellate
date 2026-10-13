@@ -6,6 +6,7 @@ plugins {
 }
 
 architectury {
+    transformerVersion = '5.2.92'
     minecraft = minecraft_version
 }
 
@@ -30,6 +31,9 @@ subprojects {
     apply plugin: 'pmd'
     apply plugin: 'architectury-plugin'
     apply plugin: 'dev.architectury.loom-no-remap'
+
+    // ASM support for LWJGL's Java 27 multi-release entries in Minecraft 26.3.
+    architectury.transformerVersion = '5.2.92'
 
     base {
         archivesName = "${rootProject.mod_id}-${project.name}"
