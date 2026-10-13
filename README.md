@@ -1,5 +1,7 @@
 # Tessellate
 
+**English** | [Čeština](README.cs.md)
+
 Tessellate is a Fabric and NeoForge performance mod for Minecraft 26.3. It groups distant loaded areas into
 independent regions and lets those regions run on different CPU cores. If one region gets too
 expensive, Tessellate can slow it down without dragging the rest of the server with it.
