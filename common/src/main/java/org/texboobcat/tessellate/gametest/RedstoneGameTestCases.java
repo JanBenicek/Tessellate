@@ -425,21 +425,28 @@ public final class RedstoneGameTestCases {
         var access = (org.texboobcat.tessellate.mixin.ChunkMapInvoker) source.chunkMap;
         for (int x = -1; x <= 1; x++) {
             for (int z = -1; z <= 1; z++) {
-                var holder = access.tessellate$getVisibleChunkIfPresent(
-                    ChunkPos.pack(center.x() + x, center.z() + z));
-                if (holder == null) {
-                    throw new IllegalStateException("forced fixture chunk has no holder");
-                }
-                var future = holder.getEntityTickingChunkFuture();
+                long packed = ChunkPos.pack(center.x() + x, center.z() + z);
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
                 level.getServer().managedBlock(() -> {
                     source.pollTask();
-                    return future.isDone();
+                    return fixtureChunkReady(access, packed) || System.nanoTime() >= deadline;
                 });
-                if (future.join().orElse(null) == null) {
-                    throw new IllegalStateException("forced fixture chunk did not become entity-ticking");
+                if (!fixtureChunkReady(access, packed)) {
+                    throw new IllegalStateException("forced fixture chunk did not become entity-ticking: "
+                        + ChunkPos.unpack(packed));
                 }
             }
         }
+    }
+
+    private static boolean fixtureChunkReady(
+            org.texboobcat.tessellate.mixin.ChunkMapInvoker access, long packed) {
+        // The initial future may be the completed UNLOADED sentinel. Ticket processing
+        // publishes a replacement, so re-read it instead of awaiting the old sentinel.
+        var holder = access.tessellate$getVisibleChunkIfPresent(packed);
+        return holder != null && holder.getEntityTickingChunkFuture()
+            .getNow(net.minecraft.server.level.ChunkHolder.UNLOADED_LEVEL_CHUNK)
+            .orElse(null) != null;
     }
 
     private static void release(ServerLevel level, BlockPos base) {
