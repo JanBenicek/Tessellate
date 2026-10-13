@@ -1,6 +1,6 @@
 # Tessellate
 
-Tessellate is a Fabric and NeoForge performance mod being ported to Minecraft 26.3. It groups distant loaded areas into
+Tessellate is a Fabric and NeoForge performance mod for Minecraft 26.3. It groups distant loaded areas into
 independent regions and lets those regions run on different CPU cores. If one region gets too
 expensive, Tessellate can slow it down without dragging the rest of the server with it.
 
@@ -8,7 +8,8 @@ Support and discussion: [join the Tessellate Discord](https://discord.gg/dPY6zmH
 
 ## Downloads
 
-Download Tessellate from [CurseForge](https://www.curseforge.com/minecraft/mc-mods/tessellate).
+Download builds of this 26.3 branch from [GitHub Actions](https://github.com/JanBenicek/Tessellate/actions/workflows/ci.yml) → a successful run → **Artifacts**.
+Published versions are also available on [CurseForge](https://www.curseforge.com/minecraft/mc-mods/tessellate).
 
 | Situation | What Tessellate does |
 | --- | --- |
@@ -405,16 +406,13 @@ Tessellate protects the shared state it knows about, but it cannot make unknown 
 
 ---
 
-## Minecraft 26.3 port status
+## Minecraft 26.3 requirements
 
 The `mc-26.3` branch targets Minecraft **26.3**, Fabric Loader **0.19.5**,
 Fabric API **0.162.0+26.3**, NeoForge **26.3.0.76**, and Architectury API **22.0.5**.
 The toolchain uses **JDK 25**, **Gradle 9.6.0**, and Architectury Loom's
 unobfuscated (`loom-no-remap`) mode. Minecraft 1.21.1 mappings are no longer used.
 
-**Migration and validation are in progress; this branch is not yet a verified
-playable release.** Both production JARs, unit tests and PMD now build successfully
-in GitHub Actions. Live GameTest validation is ongoing for both loaders.
 The benchmarks and compatibility results elsewhere in this
 README describe the original Minecraft 1.21.1 version, not the 26.3 port.
 
