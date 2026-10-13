@@ -257,6 +257,7 @@ public final class RedstoneGameTestCases {
                 level.getChunk(center.x() + x, center.z() + z);
             }
         }
+        awaitFixtureChunks(level, center);
         for (int x = 0; x <= 12; x++) {
             for (int z = 0; z <= 10; z++) {
                 level.setBlock(base.offset(x, -1, z), Blocks.STONE.defaultBlockState(), 2);
@@ -413,6 +414,31 @@ public final class RedstoneGameTestCases {
         } catch (InterruptedException failure) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(failure);
+        }
+    }
+
+    private static void awaitFixtureChunks(ServerLevel level, ChunkPos center) {
+        // GameTestServer runs without a tick delay. Await promotion rather than spending
+        // the test's tick budget while background chunk-generation tasks are still pending.
+        RegionTracker.quiesceAndDrain();
+        var source = level.getChunkSource();
+        var access = (org.texboobcat.tessellate.mixin.ChunkMapInvoker) source.chunkMap;
+        for (int x = -1; x <= 1; x++) {
+            for (int z = -1; z <= 1; z++) {
+                var holder = access.tessellate$getVisibleChunkIfPresent(
+                    ChunkPos.pack(center.x() + x, center.z() + z));
+                if (holder == null) {
+                    throw new IllegalStateException("forced fixture chunk has no holder");
+                }
+                var future = holder.getEntityTickingChunkFuture();
+                level.getServer().managedBlock(() -> {
+                    source.pollTask();
+                    return future.isDone();
+                });
+                if (future.join().orElse(null) == null) {
+                    throw new IllegalStateException("forced fixture chunk did not become entity-ticking");
+                }
+            }
         }
     }
 

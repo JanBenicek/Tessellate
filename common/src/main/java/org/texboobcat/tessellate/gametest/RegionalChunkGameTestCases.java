@@ -355,6 +355,8 @@ public final class RegionalChunkGameTestCases {
 
         level.getGameRules().set(randomTicks, 3000, level.getServer());
         level.getGameRules().set(mobSpawning, true, level.getServer());
+        // 26.3 caches the monster-spawn flag separately; NeoForge starts tests with mobs disabled.
+        level.getServer().updateMobSpawningFlags();
         level.clockManager().setTotalTicks(level.registryAccess().getOrThrow(net.minecraft.world.clock.WorldClocks.OVERWORLD), 18000L);
         for (BlockPos position : cropPositions) {
             level.setBlockAndUpdate(position.below(), Blocks.FARMLAND.defaultBlockState()
@@ -453,6 +455,7 @@ public final class RegionalChunkGameTestCases {
 
             level.getGameRules().set(randomTicks, oldRandomTicks, level.getServer());
             level.getGameRules().set(mobSpawning, oldMobSpawning, level.getServer());
+            level.getServer().updateMobSpawningFlags();
             level.clockManager().setTotalTicks(level.registryAccess().getOrThrow(net.minecraft.world.clock.WorldClocks.OVERWORLD), oldDayTime);
             for (ServerPlayer player : players) {
                 level.getServer().getPlayerList().remove(player);
