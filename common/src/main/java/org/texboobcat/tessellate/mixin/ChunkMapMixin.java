@@ -1,5 +1,10 @@
 package org.texboobcat.tessellate.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import org.texboobcat.tessellate.region.DeferredMainThreadWork;
+import org.texboobcat.tessellate.region.MainThreadBoundaries;
+
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.FullChunkStatus;
@@ -38,6 +43,19 @@ public abstract class ChunkMapMixin {
     @Shadow
     @Final
     ServerLevel level;
+
+    // LevelChunk keeps its local dirty state on its owner. Only the ChunkMap save
+    // bookkeeping belongs on main. Wrapping the entire method also keeps C2ME's
+    // HEAD thread check inside the replay, rather than bypassing that safety check.
+    @WrapMethod(method = "setChunkUnsaved")
+    private void tessellate$deferChunkSaveMark(ChunkPos pos, Operation<Void> original) {
+        if (RegionWorkers.isWorkerThread()) {
+            DeferredMainThreadWork.defer(MainThreadBoundaries.Boundary.CHUNK_SAVE_MARKS,
+                () -> original.call(pos));
+        } else {
+            original.call(pos);
+        }
+    }
 
     @Inject(method = "onFullChunkStatusChange", at = @At("HEAD"))
     private void tessellate$trackEntityTicking(ChunkPos chunkPos, FullChunkStatus status, CallbackInfo ci) {

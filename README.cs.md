@@ -350,6 +350,16 @@ na hlavní vlákno. Hoppery uvnitř regionu zůstávají na workerech. GameTest 
 chunkem kontroluje, že worker chunk nenačte, předměty zůstanou zachované a odložený přesun přenese
 přesně jeden předmět. Živý scénář je ještě nutné zopakovat s opraveným buildem.
 
+### Oznámení změněných chunků a C2ME
+
+Logy ze 17. a 22. listopadu 2026 odhalily, že C2ME odmítá volání `ChunkMap.setChunkUnsaved`
+z regionálního workeru při náhodných ticích bloků. Tessellate nyní předává toto oznámení
+hlavnímu vláknu po dokončení práce zdrojového regionu. Simulace i místní příznak změny chunku
+zůstávají vlastníkovi; kontrola vláken C2ME se nevypíná. `/tessellate phases` zobrazuje tuto
+hranici jako `chunk-save-marks`. Společný GameTest kontroluje opakovaná oznámení, jejich
+provedení právě jednou a prázdnou frontu po zpracování. Na dodaném serveru s C2ME
+0.4.2-alpha.0.90+26.3 a Lithiem 0.26.2+mc26.3 je ještě potřeba živé ověření.
+
 ## Automatické sestavení
 
 GitHub Actions spouští CI po každém pushi do libovolné větve a při každém pull requestu. Spustí `build` (včetně jednotkových testů a PMD), poté NeoForge a Fabric GameTests.

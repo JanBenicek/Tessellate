@@ -461,6 +461,16 @@ Interior hoppers retain worker ticking. The unloaded-boundary GameTest checks th
 load the missing chunk, items remain intact, and a deferred transfer moves exactly one item.
 The live server scenario still needs retesting with the fixed build.
 
+### C2ME chunk-save notifications
+
+Live logs from 17 and 22 November 2026 exposed C2ME rejecting `ChunkMap.setChunkUnsaved`
+from a region worker during random block ticks. Tessellate now queues that save-bookkeeping
+notification for main-thread replay after the source region is idle. Region simulation and
+chunk-local dirty state remain on their owner; C2ME's thread check is preserved.
+`/tessellate phases` reports this boundary as `chunk-save-marks`. A shared GameTest checks
+that repeated notifications are queued, replayed exactly once and leave no pending work.
+The supplied C2ME 0.4.2-alpha.0.90+26.3 / Lithium 0.26.2+mc26.3 server still needs a live retest.
+
 ## Automatic builds
 
 GitHub Actions runs CI on every push to any branch and on every pull request.
