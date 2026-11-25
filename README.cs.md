@@ -324,8 +324,8 @@ Stav ověření **Tessellate 1.3.0+26.3** ke dni **13. 10. 2026**:
 | Automatické kontroly commitu `82ad418` | [CI prošlo](https://github.com/JanBenicek/Tessellate/actions/runs/38364858192): 109 jednotkových testů, PMD, 11 NeoForge GameTests a 12 Fabric GameTests |
 | Dedikovaný Fabric server | Úspěšně nastartoval s Fabric Loader 0.19.5, Fabric API 0.162.0+26.3 a Architectury 22.0.5; hlášené prostředí používalo Javu 27 |
 | Jeden skutečný hráč | Úspěšně se připojil; základní hraní bylo hlášené jako funkční |
-| Více hráčů v oddělených regionech | Na živém serveru 26.3 zatím netestováno |
-| Připojení klienta k živému NeoForge serveru a kompatibilita dalších módů | Pro 26.3 zatím neověřeno |
+| Více hráčů v oddělených regionech | V pozdějším živém testu se připojili dva hráči; hopper vyvolal sériový režim. Dlouhodobé paralelní hraní ve více regionech zatím není ověřené |
+| Připojení klienta k živému NeoForge serveru a kompatibilita dalších módů | Připojení k NeoForge zatím neověřeno; Fabric nastartoval s Carpet, Distant Horizons, FerriteCore a squaremap, ale úplná kompatibilita není potvrzená |
 | Výkonnostní benchmark | Uvedený benchmark pro 1.21.1 nebyl zopakován na 26.3 |
 
 Výpisy `/tessellate regions` a `/tessellate phases` ze živého Fabric serveru ukázaly:
@@ -339,6 +339,26 @@ Výpisy `/tessellate regions` a `/tessellate phases` ze živého Fabric serveru 
 Výpis regionů současně uváděl **50 osiřelých block entities**. Toto pozorování vyžaduje prověření a není počítáno jako bezchybný výsledek. Fronta odložených operací dosáhla maxima 5 001 položek, ale při pozdějším výpisu byla prázdná. Časy fází jsou kumulativní součty, nikoliv délky jednotlivých ticků. Aktivní byl jen jeden region, takže tyto výsledky neprokazují škálování více souběžných regionů ani výkonnostní zlepšení.
 
 Při dalším živém testu rozmístěte více hráčů do vzdálených načtených oblastí a ověřte, že `/tessellate regions` hlásí více regionů. Vyzkoušejte generování chunků, moby, redstone, změny dimenzí, ukládání a restart serveru. Uchovejte výstupy obou diagnostických příkazů a `logs/latest.log` pro kontrolu rychlosti regionů, chyb, odložených front a počtu block entities.
+
+
+### Regrese hopperu na hranici chunků
+
+Živý test Fabric 26.3 se dvěma hráči odhalil hopper požadující nenačtený sousední chunk na
+regionálním workeru, což vyvolalo sériový režim. Ticky hopperů nyní předem ověřují dostupnost a
+vlastnictví okolních chunků (včetně druhé poloviny dvojité truhly) a podle potřeby odloží celý tick
+na hlavní vlákno. Hoppery uvnitř regionu zůstávají na workerech. GameTest hranice s nenačteným
+chunkem kontroluje, že worker chunk nenačte, předměty zůstanou zachované a odložený přesun přenese
+přesně jeden předmět. Živý scénář je ještě nutné zopakovat s opraveným buildem.
+
+### Oznámení změněných chunků a C2ME
+
+Logy ze 17. a 22. listopadu 2026 odhalily, že C2ME odmítá volání `ChunkMap.setChunkUnsaved`
+z regionálního workeru při náhodných ticích bloků. Tessellate nyní předává toto oznámení
+hlavnímu vláknu po dokončení práce zdrojového regionu. Simulace i místní příznak změny chunku
+zůstávají vlastníkovi; kontrola vláken C2ME se nevypíná. `/tessellate phases` zobrazuje tuto
+hranici jako `chunk-save-marks`. Společný GameTest kontroluje opakovaná oznámení, jejich
+provedení právě jednou a prázdnou frontu po zpracování. Na dodaném serveru s C2ME
+0.4.2-alpha.0.90+26.3 a Lithiem 0.26.2+mc26.3 je ještě potřeba živé ověření.
 
 ## Automatické sestavení
 

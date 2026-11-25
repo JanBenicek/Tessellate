@@ -12,6 +12,9 @@ public interface ChunkMapInvoker {
     @org.spongepowered.asm.mixin.gen.Accessor("visibleChunkMap")
     it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap<ChunkHolder> tessellate$getVisibleChunks();
 
+    @Invoker("setChunkUnsaved")
+    void tessellate$setChunkUnsaved(ChunkPos pos);
+
     @Invoker("getVisibleChunkIfPresent")
     ChunkHolder tessellate$getVisibleChunkIfPresent(long chunkPos);
 

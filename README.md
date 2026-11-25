@@ -427,8 +427,8 @@ Validation status for **Tessellate 1.3.0+26.3**, as of **2026-10-13**:
 | Automated checks on commit `82ad418` | [CI passed](https://github.com/JanBenicek/Tessellate/actions/runs/38364858192): 109 unit tests, PMD, 11 NeoForge GameTests and 12 Fabric GameTests |
 | Fabric dedicated server | Started successfully with Fabric Loader 0.19.5, Fabric API 0.162.0+26.3 and Architectury 22.0.5; the reported runtime was Java 27 |
 | One real player | Connected successfully; basic gameplay was reported working |
-| Multiple players in separate regions | Not yet tested on the live 26.3 server |
-| Live NeoForge client connection and third-party mod compatibility | Not yet verified for 26.3 |
+| Multiple players in separate regions | Two players connected in the later live test; a hopper triggered serial fallback. Sustained parallel multi-region gameplay is not yet verified |
+| Live NeoForge client connection and third-party mod compatibility | NeoForge connection not yet verified; Fabric started with Carpet, Distant Horizons, FerriteCore and squaremap, but full compatibility is not established |
 | Performance benchmark | The 1.21.1 benchmark above has not been repeated for 26.3 |
 
 The live Fabric server's `/tessellate regions` and `/tessellate phases` snapshots showed:
@@ -450,6 +450,26 @@ For the next live test, spread several players across distant loaded areas and c
 `/tessellate regions` reports multiple regions. Exercise chunk generation, mobs, redstone,
 dimension changes, saving and a server restart. Capture both diagnostic commands and
 `logs/latest.log` to check region rates, failures, deferred queues and the block-entity count.
+
+
+### Hopper boundary regression
+
+A live Fabric 26.3 test with two players exposed a hopper requesting an unloaded neighboring
+chunk on a region worker, triggering serial fallback. Boundary hopper ticks now preflight loaded
+chunk ownership (including double-chest neighbors) and defer the whole tick to main when needed.
+Interior hoppers retain worker ticking. The unloaded-boundary GameTest checks that workers do not
+load the missing chunk, items remain intact, and a deferred transfer moves exactly one item.
+The live server scenario still needs retesting with the fixed build.
+
+### C2ME chunk-save notifications
+
+Live logs from 17 and 22 November 2026 exposed C2ME rejecting `ChunkMap.setChunkUnsaved`
+from a region worker during random block ticks. Tessellate now queues that save-bookkeeping
+notification for main-thread replay after the source region is idle. Region simulation and
+chunk-local dirty state remain on their owner; C2ME's thread check is preserved.
+`/tessellate phases` reports this boundary as `chunk-save-marks`. A shared GameTest checks
+that repeated notifications are queued, replayed exactly once and leave no pending work.
+The supplied C2ME 0.4.2-alpha.0.90+26.3 / Lithium 0.26.2+mc26.3 server still needs a live retest.
 
 ## Automatic builds
 

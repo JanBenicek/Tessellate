@@ -8,6 +8,10 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ComparatorBlock;
+import net.minecraft.world.level.block.HopperBlock;
+import net.minecraft.world.level.block.entity.HopperBlockEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.RedstoneWireBlock;
 import net.minecraft.world.level.block.RepeaterBlock;
@@ -172,10 +176,26 @@ public final class RedstoneGameTestCases {
         }
         chunk.setBlockState(railStart.west(), Blocks.REDSTONE_BLOCK.defaultBlockState(), 0);
         BlockPos target = repeater.east();
+        BlockPos hopperPos = repeater.south(2);
+        BlockState hopperState = Blocks.HOPPER.defaultBlockState()
+            .setValue(HopperBlock.FACING, Direction.EAST);
+        // Place without HopperBlock.onPlace: its shape/output notifications would load
+        // the missing neighbor during fixture setup, before the worker is exercised.
+        chunk.getSection(chunk.getSectionIndex(hopperPos.getY())).setBlockState(
+            hopperPos.getX() & 15, hopperPos.getY() & 15, hopperPos.getZ() & 15, hopperState);
+        HopperBlockEntity hopper = new HopperBlockEntity(hopperPos, hopperState);
+        hopper.setItem(0, new ItemStack(Items.STONE, 3));
+        chunk.setBlockEntity(hopper);
         long misses = RegionTracker.unavailableChunks();
         RegionWorkers.runAllAndWait(List.of(() -> {
             helper.assertTrue(level.getChunkSource().getChunk(target.getX() >> 4,
                 target.getZ() >> 4, ChunkStatus.FULL, false) == null, "boundary chunk was already loaded");
+            HopperBlockEntity.pushItemsTick(level, hopperPos, hopperState, hopper);
+            helper.assertTrue(hopper.getItem(0).getCount() == 3,
+                "boundary hopper changed its inventory before main-thread replay");
+            helper.assertTrue(level.getChunkSource().getChunk(target.getX() >> 4,
+                target.getZ() >> 4, ChunkStatus.FULL, false) == null,
+                "hopper loaded its missing neighbor on a worker");
             level.neighborChanged(target, Blocks.REPEATER, null);
             level.neighborChanged(Blocks.AIR.defaultBlockState(), target, Blocks.REPEATER, null, false);
             level.updateNeighborsAt(target, Blocks.REPEATER);
@@ -189,6 +209,17 @@ public final class RedstoneGameTestCases {
         RegionTracker.quiesceAndDrain();
         helper.assertTrue(level.getBlockState(repeater).getValue(RepeaterBlock.POWERED),
             "deferred repeater tick was lost");
+        helper.assertTrue(hopper.getItem(0).getCount() == 3,
+            "hopper lost items while its output inventory was absent");
+        BlockPos output = hopperPos.east();
+        level.setBlock(output, Blocks.CHEST.defaultBlockState(), 3);
+        RegionWorkers.runAllAndWait(List.of(
+            () -> HopperBlockEntity.pushItemsTick(level, hopperPos, hopperState, hopper), () -> { }));
+        RegionTracker.quiesceAndDrain();
+        var chest = (net.minecraft.world.Container) level.getBlockEntity(output);
+        helper.assertTrue(hopper.getItem(0).getCount() == 2
+            && chest.getItem(0).is(Items.STONE) && chest.getItem(0).getCount() == 1,
+            "deferred boundary hopper did not transfer exactly one item");
         helper.assertTrue(level.getBlockState(railStart.east(8)).getValue(PoweredRailBlock.POWERED)
             && !level.getBlockState(railStart.east(9)).getValue(PoweredRailBlock.POWERED),
             "boundary powered-rail propagation did not preserve its eight-block limit");

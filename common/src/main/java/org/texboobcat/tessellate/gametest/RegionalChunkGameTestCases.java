@@ -123,6 +123,7 @@ public final class RegionalChunkGameTestCases {
                 && RegionTracker.parallelAllowed(),
             "a non-loading chunk probe degraded region ticking");
 
+        assertChunkSaveMarksStayOnMain(helper, level, start, index, region);
         assertWorkerChunkFuture(helper, level, start);
         assertChunkPacketWaitsForOwner(helper, level, start, index, region);
         assertNavigationWaitsForOwner(helper, level, start, index, region);
@@ -156,6 +157,38 @@ public final class RegionalChunkGameTestCases {
         entity.discard();
         spawned.discard();
         helper.succeed();
+    }
+
+    private static void assertChunkSaveMarksStayOnMain(GameTestHelper helper, ServerLevel level,
+            BlockPos pos, LevelRegionIndex index, Region region) {
+        RegionTracker.quiesceAndDrain();
+        var boundary = MainThreadBoundaries.Boundary.CHUNK_SAVE_MARKS;
+        var before = MainThreadBoundaries.snapshot(boundary);
+        var chunkMap = (org.texboobcat.tessellate.mixin.ChunkMapInvoker) level.getChunkSource().chunkMap;
+        var chunkPos = net.minecraft.world.level.ChunkPos.containing(pos);
+        RegionWorkers.runAllAndWait(List.of(() -> {
+            RegionThreadContext.enter(region, index.levelKey());
+            try {
+                chunkMap.tessellate$setChunkUnsaved(chunkPos);
+                chunkMap.tessellate$setChunkUnsaved(chunkPos);
+            } finally {
+                RegionThreadContext.exit();
+            }
+        }, () -> { }));
+        var queued = MainThreadBoundaries.snapshot(boundary);
+        helper.assertTrue(queued.queued() == before.queued() + 2
+                && queued.replayed() == before.replayed()
+                && queued.pending() == before.pending() + 2,
+            "worker chunk save marks escaped their main-thread boundary: " + queued);
+        RegionTracker.quiesceAndDrain();
+        var after = MainThreadBoundaries.snapshot(boundary);
+        helper.assertTrue(after.replayed() == before.replayed() + 2
+                && after.pending() == before.pending() && after.balanced()
+                && after.queuedFailures() == before.queuedFailures(),
+            "chunk save marks did not replay exactly once: " + after);
+        helper.assertTrue(MainThreadBoundaries.source(index.levelKey(), region.id()).equals(after.lastSource()),
+            "chunk save marks lost their source region");
+        helper.assertTrue(RegionTracker.parallelAllowed(), "chunk save marks caused serial fallback");
     }
 
     private static void assertPendingOutputSignalChunk(GameTestHelper helper, ServerLevel level,

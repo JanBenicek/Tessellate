@@ -15,6 +15,7 @@
     "EntityLookupMixin",
     "EntitySectionMixin",
     "accessor.EntitySectionStorageAccessor",
+    "HopperBlockEntityMixin",
     "LevelMixin",
     "accessor.LevelTicksAccessor",
     "LevelTicksMixin",

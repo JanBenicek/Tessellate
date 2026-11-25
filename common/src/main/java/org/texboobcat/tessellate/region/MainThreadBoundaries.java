@@ -20,6 +20,7 @@ public final class MainThreadBoundaries {
         NATURAL_SPAWN_COMMITS("natural-spawn-commits"),
         CHUNK_PLAYER_BROADCASTS("chunk-player-broadcasts"),
         CUSTOM_SPAWNERS("custom-spawners"),
+        CHUNK_SAVE_MARKS("chunk-save-marks"),
         MOD_COMPATIBILITY("mod-compatibility"),
         COMMAND_BARRIER("command-barrier"),
         SAVE_BARRIER("save-barrier"),
